@@ -1,0 +1,7 @@
+# 本地临时产物（GitHub Actions runner 上 .work/ 也会用到，但绝不进仓库）
+.work/
+.cache/
+
+# Python
+__pycache__/
+*.pyc

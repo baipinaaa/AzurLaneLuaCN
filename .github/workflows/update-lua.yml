@@ -1,0 +1,115 @@
+name: update-lua
+
+# 每 24 小时检查一次 CN（bilibili 服）客户端版本；只有 azhash 变了才真正
+# 解包、反编译、构建表、提交。没变化的轮次只做一次 TCP 握手就结束（几百毫秒）。
+#
+# 反编译缓存放在版本比对之后，key 用 azhash 的时间戳 —— 这样"没变化的轮次"
+# 不会产生新的 cache 条目，不会把 GitHub 的 10GB 缓存配额刷掉。
+# 缓存内容按 bundle / TextAsset 的 md5 分文件（data/manifest.json 里的索引），
+# 跨版本复用是安全的。
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "忽略版本比对，强制全量重解"
+        default: false
+        type: boolean
+      dry_run:
+        description: "只跑不提交（验证用）"
+        default: false
+        type: boolean
+
+concurrency:
+  group: update-lua
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # bcdec / uabdec 是**静态链接**的 32 位 i386 ELF（无 PT_INTERP），
+      # 实测在 ubuntu-24.04 上直接就能跑，不需要 libc6:i386。
+      - name: 工具链
+        run: |
+          chmod +x tools/bcdec tools/uabdec
+          tools/bcdec </dev/null >/dev/null 2>&1 || echo "bcdec 空输入返回 $? （正常）"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install -q --upgrade pip
+          python -m pip install -q -r requirements.txt
+
+      - name: 版本比对
+        id: ver
+        run: python scripts/check_version.py --server CN --state data/version.json
+
+      # 上一版的缓存：restore-keys 前缀命中后，md5 没变的 bundle 直接读缓存
+      - name: 恢复反编译缓存
+        if: steps.ver.outputs.changed == 'true' || inputs.force
+        uses: actions/cache@v4
+        with:
+          path: .cache/
+          key: lua-CN-${{ steps.ver.outputs.stamp }}
+          restore-keys: |
+            lua-CN-
+
+      - name: 解包 Lua（scripts32 + sharecfgdata）
+        id: unpack
+        if: steps.ver.outputs.changed == 'true' || inputs.force
+        run: |
+          python scripts/unpack_lua.py \
+            --server CN \
+            --work .cache/work \
+            --manifest .cache/manifest.json
+
+      - name: 构建表 JSON
+        id: build
+        if: steps.ver.outputs.changed == 'true' || inputs.force
+        run: |
+          python scripts/build_tables.py \
+            --lua-dir lua \
+            --out tables \
+            --server CN
+
+      # 版本状态 + versions/CN.txt 由 unpack_lua.py 在跑完后落盘（写进 data/ 和
+      # versions/ 跟随提交），这里不需要额外一步。
+      #
+      # 只在 status == 'ok' 时提交：若有个别 bundle 失败（partial），
+      # 工作区里 data/version.json 记的 az 已经前进，但不提交 → 仓库里还是旧版
+      # → 下一轮 cron 比对发现 changed=true 自动重试。超阈值的失败会让
+      # unpack_lua.py 直接 die，整个 job 失败，同样不会提交。
+      - name: 提交
+        if: (steps.ver.outputs.changed == 'true' || inputs.force) && inputs.dry_run != true && steps.unpack.outputs.status == 'ok'
+        env:
+          PREV: ${{ steps.ver.outputs.prev }}
+          NEWVER: ${{ steps.ver.outputs.version }}
+        run: |
+          if [ -z "$PREV" ]; then
+            MSG="update [CN]: $NEWVER"
+          else
+            MSG="update [CN]: $PREV -> $NEWVER"
+          fi
+          echo "提交信息: $MSG"
+          python scripts/commit.py --message "$MSG"
+
+      - name: 摘要
+        if: always()
+        run: echo "本轮结束"

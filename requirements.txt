@@ -1,0 +1,2 @@
+UnityPy==1.25.4
+ljd @ https://github.com/AzurLaneTools/ljd/releases/download/wheel/ljd-0.1.7-py3-none-any.whl
