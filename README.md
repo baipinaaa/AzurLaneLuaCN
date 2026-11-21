@@ -20,6 +20,10 @@ GitHub Actions 每天 UTC 0 点自动检查：
 - `force`：忽略版本比对强制全量重解
 - `dry_run`：只跑不提交（验证用）
 
+增量不用 actions/cache —— `data/manifest.json`（bundle/脚本 md5 索引）跟着
+git 提交，`lua/` 里现成的文件就是基线；版本没变时不跑解包，版本变了时
+md5 没变的 bundle/脚本直接跳过。
+
 ## 目录结构
 
 ```

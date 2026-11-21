@@ -55,12 +55,19 @@
 - 推送后**回读远端 tree sha** 校验与本地一致（克服 `git pull --rebase` 丢提交但
   `git push` 仍返回 0 的坑），失败重试 3 次 + `pull --rebase --autostash`
 
-## 缓存与配额
+## 增量（没有 actions/cache）
 
-- `actions/cache@v4` path `.cache/`，key `lua-CN-${{ stamp }}`，restore-keys `lua-CN-`
-- 版本没变的轮次 in 版本比对之后才恢复缓存 → 不产生新 cache 条目
-- 缓存内容按 bundle/TextAsset md5 分文件，跨版本复用安全（约几百 MB，却在
-  GitHub 10GB 配额内，因为只缓存解包产物，不缓存 40MB 原始 bundle）
+本仓库**不用 GitHub Actions 缓存**：上一轮的解包产物（`lua/` 四万多个文件）
+和 `data/manifest.json`（bundle / 脚本字节码的 md5 索引）**通过 git 提交**，
+下一轮 checkout 出来就是增量基线。
+
+- bundle md5 没变 → 整段跳过（不下载、不解密、不重写）
+- 脚本字节码 md5 没变且文件还在 → 沿用仓库内 `.lua`，不重新反编译
+- 远端已消失的 → `prune()` 删除，保证 `lua/` 与线上完全一致
+- 缓存驱逐 / 换 runner / 换新 runner 都不丢状态，因为增量跟随仓库走
+
+代价：`lua/`（约 450 MB）+ `tables/` 都进 git，仓库体量较大，但这是
+「每小时拉一次」需求里最省事的做法 —— 版本没变的轮次只做一次握手就结束。
 
 ## 只做 CN
 

@@ -3,10 +3,10 @@ name: update-lua
 # 每 24 小时检查一次 CN（bilibili 服）客户端版本；只有 azhash 变了才真正
 # 解包、反编译、构建表、提交。没变化的轮次只做一次 TCP 握手就结束（几百毫秒）。
 #
-# 反编译缓存放在版本比对之后，key 用 azhash 的时间戳 —— 这样"没变化的轮次"
-# 不会产生新的 cache 条目，不会把 GitHub 的 10GB 缓存配额刷掉。
-# 缓存内容按 bundle / TextAsset 的 md5 分文件（data/manifest.json 里的索引），
-# 跨版本复用是安全的。
+# 不做 actions/cache：增量全部靠 git 里的 `data/manifest.json`（每个 bundle 和
+# 每个脚本字节码的 md5 索引）+ `lua/` 里现成的文件 —— checkout 出来就是缓存。
+# bundle md5 没变 → 整段跳过；脚本 md5 没变且文件还在 → 不重新反编译。
+# 缓存驱逐、换 runner 都不影响，因为增量状态跟着仓库走。
 
 on:
   schedule:
@@ -35,7 +35,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
 
     steps:
       - uses: actions/checkout@v4
@@ -61,24 +61,15 @@ jobs:
         id: ver
         run: python scripts/check_version.py --server CN --state data/version.json
 
-      # 上一版的缓存：restore-keys 前缀命中后，md5 没变的 bundle 直接读缓存
-      - name: 恢复反编译缓存
-        if: steps.ver.outputs.changed == 'true' || inputs.force
-        uses: actions/cache@v4
-        with:
-          path: .cache/
-          key: lua-CN-${{ steps.ver.outputs.stamp }}
-          restore-keys: |
-            lua-CN-
-
       - name: 解包 Lua（scripts32 + sharecfgdata）
         id: unpack
         if: steps.ver.outputs.changed == 'true' || inputs.force
         run: |
+          # manifest 用默认 data/manifest.json —— 跟随提交，下一轮 checkout
+          # 就有上一轮的 md5 索引，bundle/脚本没变就直接跳过
           python scripts/unpack_lua.py \
             --server CN \
-            --work .cache/work \
-            --manifest .cache/manifest.json
+            --work .cache/work
 
       - name: 构建表 JSON
         id: build

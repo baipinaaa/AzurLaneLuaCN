@@ -37,11 +37,18 @@ wsl.exe --status   # 若输出 "未安装"，说明本机没有 WSL
   - 单个 bundle 下载中断（`.part` 会校验 size，不匹配会重试）
   - bcdec 对个别魔改字节码返回非 0（少见；可换新 commit 的 bcdec）
 
-## 有缓存但没命中 / 缓存配额
+## 增量怎么工作（没有 actions/cache）
 
-- 版本没变的轮次不恢复缓存（key 在版本比对之后）——这是故意的，避免刷配额
-- 缓存 key `lua-CN-<stamp>`，restore-keys `lua-CN-` 会复用上一版
-- 若怀疑缓存坏了：`workflow_dispatch` 手动触发一次，勾 `force` 全量重解
+本仓库**不用 GitHub Actions 缓存**：增量状态在 **git 里** ——
+`data/manifest.json` 记录每个 bundle 和每个脚本的 md5，`lua/` 里则是现成的
+反编译产物。checkout 出来就是上一轮的完整基线：
+
+- bundle md5 没变 → 整段跳过
+- 脚本 md5 没变且文件还在 → 不重新反编译
+- `data/manifest.json` 没提交 → 首轮自动全量
+
+所以「缓存被驱逐」这种事不存在；唯一需要留神的是 `lua/` + `tables/`
+体量（约 450 MB + 派生 json），push 会稍慢。
 
 ## 推送被拒 / 回读校验失败
 
