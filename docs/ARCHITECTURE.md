@@ -52,8 +52,13 @@
 
 - 只 `git add -A -- <paths>`（`lua/ tables/ data/ versions/`），不做 `git add -A .`
 - 提交身份：`github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>`
-- 推送后**回读远端 tree sha** 校验与本地一致（克服 `git pull --rebase` 丢提交但
-  `git push` 仍返回 0 的坑），失败重试 3 次 + `pull --rebase --autostash`
+- 推送后用 `git ls-remote origin refs/heads/<branch>` 回读**分支 SHA**，
+  等于本地 HEAD（commit sha）才算成功；同一个 commit sha 必然同内容。
+  失败重试 3 次 + `pull --rebase --autostash`
+
+> 血泪：第一版是在 `git commit` **之前**取各路径的 blob sha 当“预期值”，
+> 拿旧内容去比新提交，永远“不一致”—— push 明明成功了，job 却报
+> `推送后校验未通过`。比 commit sha 才是对的。
 
 ## 增量（没有 actions/cache）
 

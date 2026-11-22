@@ -121,17 +121,6 @@ def append_summary(markdown: str) -> None:
 
 # ---------------------------------------------------------------- 提交
 
-def _remote_trees(cwd: Path, branch: str, paths: list[str]) -> dict[str, str]:
-    """远端分支上这些路径的 tree/blob sha，用于推送后的内容校验。"""
-    git("fetch", "-q", "origin", branch, cwd=cwd, check=False)
-    out = {}
-    for p in paths:
-        sha = git("rev-parse", f"origin/{branch}:{p}", cwd=cwd, check=False).strip()
-        if sha:
-            out[p] = sha
-    return out
-
-
 def commit_and_push(
     cwd: str | Path,
     message: str,
@@ -139,10 +128,13 @@ def commit_and_push(
     branch: str | None = None,
     push: bool = True,
 ) -> bool:
-    """只暂存明确列出的路径，避免把"工作区里没同步的旧文件"误判为删除。
+    """只暂存明确列出的路径，避免把“工作区里没同步的旧文件”误判为删除。
 
-    推送之后**必须回读远端内容**才算成功：`git pull --rebase` 把提交丢掉时
-    `git push` 依然返回 0，只比对 SHA 会漏判。
+    推送之后必须用 `git ls-remote` 回读远端**分支 SHA** 并等于本地 HEAD 才算成功。
+    教训（首轮 CI 实测）：不要在 commit **之前**取各路径的 blob sha 去比，
+    拿旧内容去比新提交必然“不一致”；也不要只信 `git push` 的返回值 ——
+    rebase 把提交丢掉时它依旧返回 0。比 commit sha 最直接，同一个
+    commit sha 就必然同内容。
     """
     cwd = Path(cwd)
     branch = branch or os.environ.get("GITHUB_REF_NAME") or git(
@@ -158,12 +150,6 @@ def commit_and_push(
     changed = git("diff", "--cached", "--name-only", cwd=cwd).splitlines()
     log(f"变更 {len(changed)} 个文件，示例：{changed[:5]}")
 
-    snapshot = {}
-    for p in paths:
-        sha = git("rev-parse", f"HEAD:{p}", cwd=cwd, check=False).strip()
-        if sha:
-            snapshot[p] = sha
-
     git("-c", "user.name=github-actions[bot]",
         "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
         "commit", "-q", "-m", message, cwd=cwd)
@@ -173,21 +159,26 @@ def commit_and_push(
         return True
 
     for attempt in range(1, 4):
+        head = git("rev-parse", "HEAD", cwd=cwd).strip()
         proc = subprocess.run(
             ["git", "push", "-q", "origin", f"HEAD:{branch}"],
             cwd=str(cwd), capture_output=True, text=True,
             encoding="utf-8", errors="replace",
         )
         if proc.returncode == 0:
-            remote = _remote_trees(cwd, branch, list(snapshot))
-            if all(remote.get(p) == sha for p, sha in snapshot.items()):
-                log(f"已推送到 {branch}（已回读远端内容校验）")
+            remote = git("ls-remote", "origin", f"refs/heads/{branch}",
+                         cwd=cwd, check=False).split()
+            remote_sha = remote[0] if remote else ""
+            if remote_sha == head:
+                log(f"已推送到 {branch}（远端 {remote_sha[:8]} == 本地 HEAD {head[:8]}）")
                 return True
-            warn(f"推送返回 0，但远端内容不是本次提交（{attempt}/3）")
+            warn(f"push 返回 0，但远端 {branch} 是 "
+                 f"{remote_sha[:8] or '?'}，本地 HEAD 是 {head[:8]}（{attempt}/3）")
         else:
             warn(f"推送失败（{attempt}/3）：{(proc.stderr or '').strip()[:400]}")
         if attempt == 3:
-            die(f"推送后校验未通过：远端 {branch} 内容与本次提交不一致，请人工检查")
+            die(f"推送后校验未通过：远端 {branch} 不是本地 HEAD {head[:8]}，请人工检查")
         git("pull", "--rebase", "--autostash", "-q", "origin", branch,
             cwd=cwd, check=False)
+    return True
     return True
