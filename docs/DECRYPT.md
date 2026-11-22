@@ -11,6 +11,10 @@
   - 去掉 `assets/luabuilds/android/normal/` 前缀和 `.bytes` 后缀 = 相对路径
   - `m_Script`（UnityPy 1.10+ 已解成 str，需 `encode("utf-8","surrogateescape")` 取回原始字节）
 - 每个脚本先 `bcdec`（魔改 LuaJIT 字节码 → 标准），再 `ljd.tools.process_bytes` 反编译
+- **反编译必须跑在大栈线程里**：`ljd` 是纯 Python 递归下降，`word_template_*`
+  这类深层嵌套表在默认 8 MB 栈 + `recursionlimit=1000` 下直接
+  `RecursionError`。`_big_stack_map()` 用 `threading.stack_size(512 MiB)`
+  + `sys.setrecursionlimit(200000)` 建自建线程池解决
 - 产出 `lua/<相对路径>.lua`
 
 ## 链路 B：`sharecfgdata/<表名>`（独立 bundle）
@@ -23,6 +27,7 @@
 
 - 逐段读出后每段前后补上 `\x1bLJ\x02\x02` 头和 `\x00` 尾，就是完整的 BC dump
 - **逐段** `bcdec` + `ljd` 反编译，再把文本用 `\n` 拼起来
+  （单表反编译同样走大栈线程，表里也有深层嵌套）
 - 产出 `lua/sharecfgdata/<表名>.lua`
 
 > 教训：先拼字节码再一次性反编译（三种拼法）全部失败，ljd 报

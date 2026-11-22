@@ -29,13 +29,36 @@ wsl.exe --status   # 若输出 "未安装"，说明本机没有 WSL
 原因：把多个片段拼成一段字节码再一次性反编译。**必须逐段**反编译再拼文本。
 `unpack_lua.py` 的 `unpack_sharecfgdata()` 已经是对的，不要改回整包拼。
 
-## 失败项很多 / 状态 partial
+## 反编译报 `RecursionError: maximum recursion depth exceeded`
 
-- `unpack_lua.py` 每项失败会记进 `failures`，超过 `--max-failures`（默认 50）直接 die，本轮不提交
-- `status=partial` 时 workflow 不提交，下一轮 cron 会自动重试
-- 排查：看 job 日志里 `::warning::<rel> 失败：<error>`，常见原因：
-  - 单个 bundle 下载中断（`.part` 会校验 size，不匹配会重试）
-  - bcdec 对个别魔改字节码返回非 0（少见；可换新 commit 的 bcdec）
+`ljd` 是纯 Python 的递归下降反编译器。`sharecfg/word_sublist/word_template_*.lua`
+这类几千层嵌套表的脚本，在默认 8 MB 线程栈 + `recursionlimit=1000` 下必然爆栈
+（首轮 CI 实测就是栽在这里：大批 word_template 全挂，导致 `status=partial`、
+提交步骤被跳过，仓库看起来「没更新」）。
+
+修法（已在 `_big_stack_map()` 里实现）：反编译跑在**自建的大栈线程**里——
+`threading.stack_size(512 MiB)` + `sys.setrecursionlimit(200000)`。
+`ThreadPoolExecutor` 建线程时改不了栈大小，所以没用它。
+`sharecfgdata` 的单表反编译（`unpack_sharecfgdata()`）也走同一条大栈路径。
+
+## 状态 partial / 提交步骤被跳过（仓库没更新）
+
+`status` 判定规则：
+
+| 情况 | status | 是否提交 |
+|---|---|---|
+| 结构性失败（bundle 下载/解密整体失败） | `partial` | 否，下轮 cron 重试 |
+| 单脚本失败占比 > `--max-skip-ratio`（默认 2%） | `partial` | 否，判定为格式/工具链异常 |
+| 只有零星脚本反编译不出 | `ok` | **是**，缺失记进 `data/skipped.json` |
+
+排查：run 页面会有一条 `::error::本轮未提交：…` annotation，写明结构性失败项数
+和单脚本跳过项数；步骤摘要里也列了前几个失败的文件。
+
+- 结构性失败：看 `::warning::<rel> 失败：<error>`，常见是下载中断（`.part`
+  会校验 size，不匹配会重试）或 bcdec 返回非 0（少见，可换新 commit 的 bcdec）
+- 单脚本跳过：基本都是 ljd 自身限制（深层嵌套、`framework/tolua/jit/dis_x86.lua`
+  这类 JIT 调试库的 IR 断言失败），不影响游戏逻辑表，可接受
+
 
 ## 增量怎么工作（没有 actions/cache）
 

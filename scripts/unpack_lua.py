@@ -29,17 +29,18 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import queue
 import subprocess
 import sys
+import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _common import (append_summary, die, log, read_json, set_output, warn,
-                     write_json, write_text)  # noqa: E402
+from _common import (append_summary, die, error, log, read_json, set_output,
+                     warn, write_json, write_text)  # noqa: E402
 from cdn import (SERVERS, azhash_of, fetch_bundle, fetch_hash_list,
                  get_version)  # noqa: E402
 
@@ -50,6 +51,13 @@ LJ_HEADER = b"\x1bLJ\x02\x02"
 TEXTASSET_PREFIX = "assets/luabuilds/android/normal/"
 SCRIPT_SUFFIX = ".lua.bytes"
 SHARECFGDATA_PREFIX = "sharecfgdata/"
+
+# ljd 是纯 Python 的递归下降反编译器。`sharecfg/word_sublist/word_template_*.lua`
+# 那类几千层嵌套表的脚本，在默认 8 MB 线程栈 + recursionlimit 1000 下会直接
+# `RecursionError`（实测报错就是这个）。栈开到 256 MB、递归上限提到 20 万后
+# 就能正常出源码。所以反编译必须跑在自建的大栈线程里。
+BIG_STACK = 512 * 1024 * 1024
+RECURSION_LIMIT = 200_000
 
 
 # --------------------------------------------------------------------- 工具链
@@ -168,32 +176,80 @@ def collect_scripts(dec_bundle: Path, skip: tuple[str, ...]) -> dict[str, bytes]
     return found
 
 
-def decompile_into(targets: list[tuple[str, bytes]], lua_dir: Path, jobs: int) -> list[tuple[str, str]]:
-    """并发跑 bcdec+ljd，写盘。返回失败列表 [(rel, 错误)]。"""
-    failures: list[tuple[str, str]] = []
+def _big_stack_map(fn, items: list, jobs: int) -> list:
+    """在 jobs 个**自建的大栈线程**上跑 fn，返回与 items 同序的 [(结果, 异常)]。
+
+    不用 ThreadPoolExecutor：它建线程时改不了栈大小，而 ljd 需要深栈。
+    `threading.stack_size()` 是全局设置，只影响之后新建的线程，所以这里
+    设置 → 起线程 → 恢复，中间不创建别的线程。
+    """
+    results: list = [None] * len(items)
+    pending: queue.Queue = queue.Queue()
+    for idx, item in enumerate(items):
+        pending.put((idx, item))
+
+    def worker() -> None:
+        sys.setrecursionlimit(RECURSION_LIMIT)
+        while True:
+            try:
+                idx, item = pending.get_nowait()
+            except queue.Empty:
+                return
+            try:
+                results[idx] = (fn(item), None)
+            except BaseException as exc:  # noqa: BLE001 —— 含 RecursionError
+                results[idx] = (None, exc)
+
+    old = threading.stack_size()
+    threading.stack_size(BIG_STACK)
+    try:
+        threads = [threading.Thread(target=worker, daemon=True)
+                   for _ in range(max(1, jobs))]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+    finally:
+        threading.stack_size(old)
+    return results
+
+
+def decompile_into(targets: list[tuple[str, bytes]], lua_dir: Path, jobs: int
+                   ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """并发跑 bcdec+ljd，写盘。
+
+    返回 (hard, skipped)：
+      hard    —— 写盘/磁盘类错误，说明环境有问题，本轮不能提交；
+      skipped —— 单个脚本 ljd 反编译不了（深层嵌套、JIT 扩展语法等），
+                 记录进 data/skipped.json，不阻塞整轮提交。
+    """
+    hard: list[tuple[str, str]] = []
+    skipped: list[tuple[str, str]] = []
+
+    def one(item: tuple[str, bytes]) -> None:
+        rel, raw = item
+        write_text(lua_dir / rel, decompile(bcdec(raw)))
+
     done = 0
     started = time.time()
-
-    def one(item: tuple[str, bytes]):
-        rel, raw = item
-        text = decompile(bcdec(raw))
-        write_text(lua_dir / rel, text)
-        return rel
-
-    with ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
-        futures = {pool.submit(one, item): item[0] for item in targets}
-        for future in futures:
-            rel = futures[future]
-            try:
-                future.result()
-            except Exception as exc:  # noqa: BLE001
-                failures.append((rel, f"{type(exc).__name__}: {exc}"))
-                continue
+    outcome = _big_stack_map(one, targets, jobs)
+    for (rel, _raw), entry in zip(targets, outcome):
+        if entry is None:                     # 线程异常退出没写结果
+            hard.append((rel, "RuntimeError: 反编译线程异常退出"))
+            continue
+        _res, err = entry
+        if err is None:
             done += 1
             if done % 2000 == 0:
                 rate = done / max(1e-6, time.time() - started)
                 log(f"  反编译 {done}/{len(targets)}（{rate:.0f} 个/秒）")
-    return failures
+            continue
+        msg = f"{type(err).__name__}: {err}"
+        if isinstance(err, OSError):
+            hard.append((rel, msg))
+        else:
+            skipped.append((rel, msg))
+    return hard, skipped
 
 
 # --------------------------------------------------------------- sharecfgdata
@@ -205,9 +261,17 @@ def unpack_sharecfgdata(bundle: Path) -> str:
     不要先拼字节码再一次性反编译（实测三种拼法全部失败）。
     """
     raw = bundle.read_bytes()
-    texts = [decompile(bcdec(seg)) for seg in iter_segments(raw)]
-    if not texts:
+    segs = [bcdec(seg) for seg in iter_segments(raw)]
+    if not segs:
         raise ValueError(f"{bundle.name}: 切分出 0 个片段")
+    # 表里同样有深层嵌套（比如 map_template 的坐标数组），交给大栈线程跑，
+    # 否则主线程 8 MB 栈会在几百层递归后 RecursionError。
+    texts: list[str] = []
+    for entry in _big_stack_map(decompile, segs, 1):
+        res, err = entry if entry is not None else (None, RuntimeError("分段反编译线程异常退出"))
+        if err is not None:
+            raise err
+        texts.append(res)
     return "\n".join(texts)
 
 
@@ -246,7 +310,8 @@ def main() -> int:
     ap.add_argument("--versions", default="versions", help="写 <服>.txt 的目录")
     ap.add_argument("--jobs", type=int, default=4, help="bcdec 并发数")
     ap.add_argument("--skip", default="", help="跳过这些顶层目录（逗号分隔）")
-    ap.add_argument("--max-failures", type=int, default=50)
+    ap.add_argument("--max-skip-ratio", type=float, default=0.02,
+                    help="单个脚本反编译失败占比超过此值就判定本轮异常（默认 2%%）")
     ap.add_argument("--force", action="store_true", help="忽略 md5 缓存全量重解")
     args = ap.parse_args()
 
@@ -277,7 +342,8 @@ def main() -> int:
 
     bundles: dict[str, str] = {}
     scripts: dict[str, str] = {}
-    failures: list[tuple[str, str]] = []
+    hard: list[tuple[str, str]] = []       # 结构性失败：影响本轮提交
+    skipped: list[tuple[str, str]] = []    # 单脚本反编译失败：记录但不阻塞
 
     # ---- 2. scripts32 → lua/*
     sc32_md5 = listing["scripts32"]["md5"]
@@ -303,7 +369,9 @@ def main() -> int:
             assets = collect_scripts(dec, skip)
             targets = [(rel, raw) for rel, raw in assets.items()
                        if not (lua_dir / rel).exists()]
-            failures += decompile_into(targets, lua_dir, args.jobs)
+            h, s = decompile_into(targets, lua_dir, args.jobs)
+            hard += h
+            skipped += s
             scripts = {rel: hashlib.md5(raw).hexdigest() for rel, raw in assets.items()}
     else:
         assets = collect_scripts(dec, skip)
@@ -315,7 +383,9 @@ def main() -> int:
             or not (lua_dir / rel).exists()
         ]
         log(f"需要反编译 {len(targets)}/{len(assets)} 个脚本")
-        failures += decompile_into(targets, lua_dir, args.jobs)
+        h, s = decompile_into(targets, lua_dir, args.jobs)
+        hard += h
+        skipped += s
         scripts = digests
 
     # ---- 3. sharecfgdata/* → lua/sharecfgdata/*.lua
@@ -339,7 +409,7 @@ def main() -> int:
             write_text(dest, text)
             log(f"  {name}: {len(text) / 1e6:.1f} MB")
         except Exception as exc:  # noqa: BLE001
-            failures.append((f"sharecfgdata/{name}", f"{type(exc).__name__}: {exc}"))
+            hard.append((f"sharecfgdata/{name}", f"{type(exc).__name__}: {exc}"))
             warn(f"sharecfgdata/{name} 失败：{exc}")
         finally:
             bundle.unlink(missing_ok=True)
@@ -359,13 +429,21 @@ def main() -> int:
             bundles[path] = md5
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    status = "ok" if not failures else "partial"
+
+    # 判定标准：
+    #   hard 非空                        → 结构性问题（下载/解密整体失败），不提交
+    #   单脚本失败占比 > --max-skip-ratio → 说明格式变了或工具链失效，不提交
+    #   否则只有零星脚本反编译不出（ljd 自身限制）→ 照常提交，缺失记录进 manifest
+    skip_ratio = len(skipped) / max(1, len(scripts))
+    status = "ok" if not hard and skip_ratio <= args.max_skip_ratio else "partial"
     write_json(manifest_path, {
         "version": version,
         "az": az_raw,
         "updated_at": now,
         "bundles": bundles,
         "scripts": scripts,
+        "skipped": {rel: {"md5": scripts.get(rel, ""), "error": err}
+                    for rel, err in skipped},
     })
     state = read_json(state_path)
     state[args.server] = {
@@ -378,23 +456,39 @@ def main() -> int:
 
     elapsed = time.time() - started
     log(f"完成：{len(scripts)} 个脚本 / {len(scd_items)} 张 sharecfgdata / "
-        f"{len(failures)} 项失败 / {elapsed:.0f}s")
+        f"结构性失败 {len(hard)} 项 / 单脚本跳过 {len(skipped)} 项（"
+        f"{skip_ratio:.2%}）/ {elapsed:.0f}s → status={status}")
 
     set_output(status=status, scripts=len(scripts), bundles=len(bundles),
-               failures=len(failures), seconds=f"{elapsed:.0f}", version=version)
-    append_summary(
-        f"### Lua 解包（{args.server}）\n"
-        f"- 版本：`{version}`（`{az_raw.strip('$')}`）\n"
-        f"- 脚本：`{len(scripts)}` 个；sharecfgdata：`{len(scd_items)}` 个\n"
-        f"- 清理旧文件：`{removed}`；耗时：`{elapsed:.0f}s`\n"
-        + (f"- ⚠️ 失败 `{len(failures)}` 项：" +
-           "、".join(f"`{rel}`" for rel, _ in failures[:8]) + "\n" if failures else "")
-    )
-    if failures:
-        for rel, err in failures[:20]:
-            warn(f"{rel} 失败：{err}")
-        if len(failures) > args.max_failures:
-            die(f"失败 {len(failures)} 项，超过阈值 {args.max_failures}，本轮不提交")
+               skipped=len(skipped), hard=len(hard),
+               seconds=f"{elapsed:.0f}", version=version)
+    summary = [
+        f"### Lua 解包（{args.server}）",
+        f"- 版本：`{version}`（`{az_raw.strip('$')}`）",
+        f"- 脚本：`{len(scripts)}` 个；sharecfgdata：`{len(scd_items)}` 个",
+        f"- 清理旧文件：`{removed}`；耗时：`{elapsed:.0f}s`",
+        f"- 状态：`{status}`；结构性失败 `{len(hard)}`；单脚本跳过 `{len(skipped)}`"
+        f"（`{skip_ratio:.2%}`）",
+    ]
+    if skipped:
+        summary.append("- 未能反编译的脚本（ljd 限制，已记录到 `data/skipped.json`）：" +
+                       "、".join(f"`{rel}`" for rel, _ in skipped[:6]) +
+                       (" 等" if len(skipped) > 6 else ""))
+    if hard:
+        summary.append("- ⚠️ 结构性失败：" +
+                       "、".join(f"`{rel}`（{err[:60]}）" for rel, err in hard[:6]))
+    append_summary("\n".join(summary) + "\n")
+
+    if skipped:
+        warn(f"{len(skipped)} 个脚本 ljd 反编译失败（不阻塞提交），前 5 个：" +
+             "；".join(f"{rel} -> {err[:60]}" for rel, err in skipped[:5]))
+    if hard:
+        for rel, err in hard[:20]:
+            error(f"{rel} 失败：{err}")
+        error(f"结构性失败 {len(hard)} 项，本轮不提交，下一轮 cron 会自动重试")
+    elif status == "partial":
+        error(f"单脚本失败占比 {skip_ratio:.2%} 超过阈值 "
+              f"{args.max_skip_ratio:.2%}，判定异常，本轮不提交")
     return 0
 
 

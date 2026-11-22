@@ -83,10 +83,15 @@ jobs:
       # 版本状态 + versions/CN.txt 由 unpack_lua.py 在跑完后落盘（写进 data/ 和
       # versions/ 跟随提交），这里不需要额外一步。
       #
-      # 只在 status == 'ok' 时提交：若有个别 bundle 失败（partial），
-      # 工作区里 data/version.json 记的 az 已经前进，但不提交 → 仓库里还是旧版
-      # → 下一轮 cron 比对发现 changed=true 自动重试。超阈值的失败会让
-      # unpack_lua.py 直接 die，整个 job 失败，同样不会提交。
+      # 只在 status == 'ok' 时提交：
+      #   - hard（下载/解密整体失败）      → 不提交，下一轮 cron 自动重试
+      #   - 单脚本失败占比 > 2%             → 同样不提交
+      #   - 零星脚本 ljd 反编译不了（<2%）→ **照常提交**，缺失记在 data/skipped.json
+      - name: 未提交原因
+        if: (steps.ver.outputs.changed == 'true' || inputs.force) && steps.unpack.outputs.status != 'ok'
+        run: |
+          echo "::error::本轮未提交：status=${{ steps.unpack.outputs.status }}，结构性失败 ${{ steps.unpack.outputs.hard }} 项，单脚本跳过 ${{ steps.unpack.outputs.skipped }} 项。详见上方步骤输出。"
+
       - name: 提交
         if: (steps.ver.outputs.changed == 'true' || inputs.force) && inputs.dry_run != true && steps.unpack.outputs.status == 'ok'
         env:
