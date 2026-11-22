@@ -1,0 +1,1926 @@
+slot0 = class("InstagramChatLayer", import("...base.BaseUI"))
+slot1 = pg.activity_ins_ship_group_template
+slot2 = pg.activity_ins_redpackage
+slot3 = pg.emoji_template
+
+slot0.getUIName = function(slot0)
+	return "InstagramChatUI"
+end
+
+slot0.getGroupName = function(slot0)
+	return "InstagramMainUI"
+end
+
+slot0.ReadType = {
+	"all",
+	"hasReaded",
+	"waitingForRead"
+}
+slot0.TypeType = {
+	"all",
+	"single",
+	"multiple"
+}
+slot0.CampIds = {
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
+	9,
+	10,
+	11,
+	12,
+	13
+}
+slot0.CampNames = {
+	"word_shipNation_all",
+	"word_shipNation_baiYing",
+	"word_shipNation_huangJia",
+	"word_shipNation_chongYing",
+	"word_shipNation_tieXue",
+	"word_shipNation_dongHuang",
+	"word_shipNation_saDing",
+	"word_shipNation_beiLian",
+	"word_shipNation_ziyou",
+	"word_shipNation_weixi",
+	"word_shipNation_mot",
+	"word_shipNation_yujinwangguo",
+	"word_shipNation_jinghuanlianmeng",
+	"word_shipNation_other"
+}
+
+slot0.init = function(slot0)
+	slot0.leftPanel = slot0._tf:Find("main/leftPanel")
+	slot0.filterBtn = slot0.leftPanel:Find("leftTop/filter")
+	slot0.isFiltered = slot0.filterBtn:Find("isFiltered")
+	slot0.charaScrollrect = slot0.leftPanel:Find("charaScroll"):GetComponent("LScrollRect")
+	slot0.charaScrollContent = slot0.leftPanel:Find("charaScroll/Viewport/Content")
+	slot0.rightPanel = slot0._tf:Find("main/rightPanel")
+	slot0.rightChatPanel = slot0.rightPanel:Find("chat")
+	slot0.rightOfficialAccountsPanel = slot0.rightPanel:Find("officialAccounts")
+	slot0.characterName = slot0.rightPanel:Find("chat/rightTop/name")
+	slot0.careBtn = slot0.rightPanel:Find("chat/rightTop/careBtn")
+	slot0.topicBtn = slot0.rightPanel:Find("chat/rightTop/topicBtn")
+	slot0.backgroundBtn = slot0.rightPanel:Find("chat/rightTop/backgroundBtn")
+	slot0.messageList = UIItemList.New(slot0.rightPanel:Find("chat/messageScroll/Viewport/Content"), slot0.rightPanel:Find("chat/messageScroll/Viewport/Content/messageCard"))
+	slot0.optionPanel = slot0.rightPanel:Find("chat/optionPanel")
+	slot0.optionList = UIItemList.New(slot0.optionPanel, slot0.optionPanel:Find("option"))
+	slot0.filterUI = slot0._tf:Find("subPages/InstagramFilterUI")
+	slot0.topicUI = slot0._tf:Find("subPages/InstagramTopicUI")
+	slot0.backgroundUI = slot0._tf:Find("subPages/InstagramBackgroundUI")
+	slot0.redPacketUI = slot0._tf:Find("subPages/InstagramRedPacketUI")
+
+	setText(slot0.filterBtn:Find("Text"), i18n("juuschat_filter_title"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/read/subTitleFrame/subTitle"), i18n("juuschat_filter_subtitle1"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/type/subTitleFrame/subTitle"), i18n("juuschat_filter_subtitle2"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/subTitleFrame/subTitle"), i18n("juuschat_filter_subtitle3"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/read/option/Text"), i18n("juuschat_filter_tip1"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/read/option_1/Text"), i18n("juuschat_filter_tip2"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/read/option_2/Text"), i18n("juuschat_filter_tip3"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/type/option/Text"), i18n("juuschat_filter_tip1"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/type/option_1/Text"), i18n("juuschat_filter_tip4"))
+	setText(slot0.filterUI:Find("panel/filterScroll/Viewport/Content/type/option_2/Text"), i18n("juuschat_filter_tip5"))
+	setText(slot0.topicUI:Find("panel/topicScroll/Viewport/Content/self/topic/waiting"), i18n("juuschat_chattip3"))
+	setText(slot0.topicUI:Find("panel/topicScroll/Viewport/Content/self/topic/selected/Text"), i18n("juuschat_label2"))
+	setText(slot0.topicUI:Find("panel/topicScroll/Viewport/Content/other/topic/waiting"), i18n("juuschat_chattip3"))
+	setText(slot0.topicUI:Find("panel/topicScroll/Viewport/Content/other/topic/selected/Text"), i18n("juuschat_label2"))
+	setText(slot0.backgroundUI:Find("panel/backgroundScroll/Viewport/Content/background/selected/Text"), i18n("juuschat_label1"))
+	setText(slot0.redPacketUI:Find("panel/got/detailBtn/Text"), i18n("juuschat_redpacket_show_detail"))
+	setText(slot0.redPacketUI:Find("panel/detail/title"), i18n("juuschat_redpacket_detail"))
+	setText(slot0._tf:Find("main/noFilteredMessageBg/Text"), i18n("juuschat_filter_empty"))
+	setText(slot0.backgroundUI:Find("panel/backgroundScroll/Viewport/Content/background/lockFrame/Text"), i18n("juuschat_background_tip1"))
+
+	slot0.redPacketGot = slot0.redPacketUI:Find("panel/got")
+
+	slot0:OverlayPanel(slot0._tf)
+	SetActive(slot0.filterUI, false)
+	SetActive(slot0.isFiltered, false)
+	SetActive(slot0.topicUI, false)
+	SetActive(slot0.backgroundUI, false)
+	SetActive(slot0.redPacketUI, false)
+	SetActive(slot0.rightPanel, false)
+
+	slot0.timerList = {}
+	slot0.canFresh = false
+	slot1 = slot0.rightPanel:Find("chat/messageScroll/Scrollbar Vertical"):GetComponent(typeof(RectTransform))
+	slot0.messageScrollWidth = slot1.rect.width
+	slot0.messageScrollHeight = slot1.rect.height
+
+	slot0.filterUI:Find("panel/title"):GetComponent(typeof(Image)):SetNativeSize()
+	slot0.topicUI:Find("panel/title"):GetComponent(typeof(Image)):SetNativeSize()
+	slot0.backgroundUI:Find("panel/title"):GetComponent(typeof(Image)):SetNativeSize()
+	slot0:InitOfficialAccounts()
+end
+
+slot0.didEnter = function(slot0)
+	slot0:SetData()
+
+	slot0.charaScrollrect.onInitItem = function(slot0)
+		uv0:OnInitItem(slot0)
+	end
+
+	slot0.charaScrollrect.onUpdateItem = function(slot0, slot1)
+		uv0:OnUpdateItem(slot0, slot1)
+	end
+
+	slot0:UpdateCharaList(false, false)
+	slot0:SetFilterPanel()
+
+	slot0.officialAccountsTimerList = {}
+	slot0.officialAccountsItemList = {}
+
+	slot0:AddOfficialAccountsTimer()
+end
+
+slot0.InsertOfficialAccounts = function(slot0)
+	if InstagramTools.ExistOfficialAccounts() then
+		table.insert(slot0.chatList, 1, {
+			chatType = InstagramConst.INSTAGRAM_CHAT_TYPE.OFFICIAL_ACCOUNT
+		})
+	end
+end
+
+slot0.OnInitItem = function(slot0, slot1)
+end
+
+slot0.OnUpdateItem = function(slot0, slot1, slot2)
+	setActive(tf(slot2), true)
+
+	slot5 = slot0.chatList[slot1 + 1].chatType == InstagramConst.INSTAGRAM_CHAT_TYPE.OFFICIAL_ACCOUNT
+
+	setActive(slot4:Find("chat"), not slot5)
+	setActive(slot4:Find("officialAccounts"), slot5)
+
+	if not slot5 then
+		slot6 = slot3.sculpture
+
+		if slot3.currentTopic.isII and slot3.sculptureII ~= "" then
+			slot6 = slot3.sculptureII
+		end
+
+		setImageSprite(slot4:Find("chat/charaBg/chara"), LoadSprite("qicon/" .. slot6), false)
+		setText(slot4:Find("chat/name"), slot3.name)
+
+		slot7 = slot3:GetDisplayWord()
+
+		if not slot0.currentChat or slot0.currentChat.characterId ~= slot3.characterId or not slot0.isSlowMsg then
+			setText(slot4:Find("chat/msg"), slot7)
+		end
+
+		setText(slot4:Find("chat/displayWord"), slot7)
+		SetActive(slot4:Find("chat/care"), slot3.care == 1)
+
+		if slot3.care == 1 and slot0.careAniTriggerId and slot0.careAniTriggerId == slot3.characterId then
+			slot0.careAniTriggerId = nil
+
+			slot4:Find("chat/care"):GetComponent(typeof(Animation)):Play("anim_newinstagram_care")
+		end
+
+		SetActive(slot4:Find("chat/tip"), slot3:GetCharacterEndFlag() == 0)
+		setText(slot4:Find("chat/id"), slot3.characterId)
+		onButton(slot0, slot4, function ()
+			if uv0.currentChat and uv0.currentChat.characterId ~= uv1.characterId then
+				uv0:ResetCharaTextFunc(uv0.currentChat.characterId)
+			end
+
+			uv0.currentChat = uv1
+
+			SetActive(uv0.rightPanel, true)
+			SetActive(uv0._tf:Find("main/rightNoMessageBg"), false)
+
+			slot3 = false
+
+			uv0:UpdateChatContent(uv1, slot3, false)
+			uv0:SetTopicPanel(uv1)
+			uv0:SetBackgroundPanel(uv1)
+
+			for slot3 = 0, uv0.charaScrollContent.childCount - 1 do
+				SetActive(uv0.charaScrollContent:GetChild(slot3):Find("frame"), false)
+			end
+
+			SetActive(uv2:Find("frame"), true)
+
+			uv0.cancelFrame = function()
+				if not IsNil(uv0) then
+					SetActive(uv0:Find("frame"), false)
+				end
+			end
+
+			slot0 = uv0.rightPanel:GetComponent(typeof(Animation))
+
+			slot0:Stop()
+			slot0:Play("anim_newinstagram_chat_right_in")
+			pg.GameTrackerMgr.GetInstance():Record(GameTrackerBuilder.BuildJuusOfficialAccountsClick(0, uv1.currentTopicId, 1))
+		end, SFX_PANEL)
+	else
+		slot8 = getProxy(InstagramProxy)
+
+		SetActive(slot4:Find("officialAccounts/tip"), slot8:ShouldShowOfficialAccountsTip())
+		onButton(slot0, slot4, function ()
+			SetActive(uv0.rightPanel, true)
+
+			slot3 = "main/rightNoMessageBg"
+
+			SetActive(uv0._tf:Find(slot3), false)
+
+			for slot3 = 0, uv0.charaScrollContent.childCount - 1 do
+				SetActive(uv0.charaScrollContent:GetChild(slot3):Find("frame"), false)
+			end
+
+			SetActive(uv1:Find("frame"), true)
+
+			uv0.cancelFrame = function()
+				if not IsNil(uv0) then
+					SetActive(uv0:Find("frame"), false)
+				end
+			end
+
+			uv0.currentChat = uv2
+
+			uv0:UpdateOfficialAccounts(uv2)
+
+			slot0 = uv0.rightPanel:GetComponent(typeof(Animation))
+
+			slot0:Stop()
+			slot0:Play("anim_newinstagram_chat_right_in")
+		end, SFX_PANEL)
+	end
+
+	if slot0.currentChat then
+		SetActive(slot4:Find("frame"), slot0.currentChat == slot3)
+	end
+end
+
+slot0.UpdateCharaList = function(slot0, slot1, slot2)
+	if not slot0.chatList or #slot0.chatList == 0 then
+		SetActive(slot0.leftPanel, false)
+		SetActive(slot0.rightPanel, false)
+		SetActive(slot0._tf:Find("main/noMessageBg"), true)
+		SetActive(slot0._tf:Find("main/noFilteredMessageBg"), false)
+		SetActive(slot0._tf:Find("main/rightNoMessageBg"), false)
+
+		return
+	end
+
+	if not slot0.currentChat then
+		SetActive(slot0.rightPanel, false)
+		SetActive(slot0._tf:Find("main/rightNoMessageBg"), true)
+	else
+		SetActive(slot0.rightPanel, true)
+		SetActive(slot0._tf:Find("main/rightNoMessageBg"), false)
+	end
+
+	slot0.isSlowMsg = slot1
+
+	slot0:SetFilterResult()
+
+	if slot0.currentChat then
+		if slot0.currentChat.chatType == InstagramConst.INSTAGRAM_CHAT_TYPE.OFFICIAL_ACCOUNT then
+			slot0:UpdateOfficialAccounts(slot0.currentChat)
+		else
+			slot0:UpdateChatContent(slot0.currentChat, slot1, slot2)
+			slot0:SetTopicPanel(slot0.currentChat)
+		end
+	end
+end
+
+slot0.UpdateChatContent = function(slot0, slot1, slot2, slot3)
+	setActive(slot0.rightChatPanel, true)
+	setActive(slot0.rightOfficialAccountsPanel, false)
+	SetActive(slot0.rightPanel, true)
+	setText(slot0.characterName, slot1.name)
+	SetActive(slot0.careBtn:Find("care"), slot1.care == 1)
+	onButton(slot0, slot0.careBtn, function ()
+		uv1:emit(InstagramChatMediator.CHANGE_CARE, uv0.characterId, uv0.care == 0 and 1 or 0)
+
+		uv1.careAniTriggerId = uv0.characterId
+	end, SFX_PANEL)
+
+	slot6 = slot0.rightPanel:Find("chat/paintingMask"):Find("painting")
+	slot7 = slot0.rightPanel:Find("chat/paintingMask/hx")
+	slot8 = slot0.rightPanel:Find("chat/groupBackground")
+
+	if slot1.type == 1 then
+		SetActive(slot5, true)
+		SetActive(slot8, false)
+
+		slot9 = "unknown"
+
+		if slot1.skinId == 0 then
+			slot9 = slot1:GetPainting()
+		else
+			for slot13, slot14 in ipairs(slot1.skins) do
+				if slot14.id == slot1.skinId then
+					slot9 = slot14.painting
+				end
+			end
+		end
+
+		if HXSet.isHx() and CUSTOM_HX then
+			SetActive(slot6, false)
+			SetActive(slot7, true)
+		else
+			if not slot0.paintingName then
+				setPaintingPrefabAsync(slot6, slot9, "pifu")
+
+				slot0.paintingName = slot9
+			elseif slot0.paintingName and slot0.paintingName ~= slot9 then
+				retPaintingPrefab(slot6, slot0.paintingName)
+				setPaintingPrefabAsync(slot6, slot9, "pifu")
+
+				slot0.paintingName = slot9
+			end
+
+			SetActive(slot7, false)
+		end
+	else
+		SetActive(slot5, false)
+		SetActive(slot8, true)
+
+		if slot0.paintingName then
+			retPaintingPrefab(slot6, slot0.paintingName)
+
+			slot0.paintingName = nil
+		end
+
+		setImageSprite(slot8, LoadSprite("ui/InstagramChatBackgrounds_atlas", slot1.groupBackground), true)
+	end
+
+	slot9 = slot1.currentTopic:GetDisplayWordList()
+
+	if not slot3 then
+		slot0:UpdateOptionPanel(slot1.currentTopic, slot9)
+		slot0:UpdateMessageList(slot1.currentTopic, slot9, slot2, slot1.characterId, slot1.type)
+	end
+
+	if not slot2 and slot1.currentTopic.readFlag == 0 then
+		slot0:emit(InstagramChatMediator.SET_READED, {
+			slot1.currentTopic.topicId
+		})
+	end
+end
+
+slot0.UpdateMessageList = function(slot0, slot1, slot2, slot3, slot4, slot5)
+	slot0:RemoveAllTimer()
+
+	slot6 = nil
+
+	for slot10 = #slot2, 1, -1 do
+		if slot2[slot10].ship_group == 0 or slot2[slot10].type == 3 and slot1:RedPacketGotFlag(tonumber(slot2[slot10].param)) then
+			slot6 = slot10
+
+			break
+		end
+	end
+
+	slot7 = {}
+
+	if slot6 then
+		for slot11 = slot6, 1, -1 do
+			if slot2[slot11].ship_group == 0 then
+				table.insert(slot7, slot11)
+			else
+				break
+			end
+		end
+	end
+
+	if slot0.shouldShowOption and slot3 then
+		slot0:SetOptionPanelActive(false)
+	end
+
+	if slot3 then
+		slot10 = slot0.rightPanel
+
+		onButton(slot0, slot10:Find("chat/messageScroll"), function ()
+			uv0:SpeedUpMessage()
+		end, SFX_PANEL)
+	end
+
+	slot8 = GetComponent(slot0.rightPanel:Find("chat/messageScroll"), typeof(ScrollRect))
+
+	slot9 = function(slot0)
+		uv0.normalizedPosition = Vector2(0, slot0)
+	end
+
+	slot12 = pg.gameset.juuschat_dialogue_trigger_time.key_value / 1000 - pg.gameset.juuschat_entering_time.key_value / 1000
+
+	slot0.messageList:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			if uv0[slot1 + 1].ship_group == 0 and slot3.type == 0 then
+				SetActive(slot2, false)
+
+				return
+			end
+
+			SetActive(slot2:Find("charaMessageCard"), slot3.ship_group ~= 0)
+			SetActive(slot2:Find("playerReplyCard"), slot3.ship_group == 0)
+
+			if slot3.ship_group ~= 0 and uv1 == 2 and slot3.type ~= 5 then
+				SetActive(slot2:Find("nameBar"), true)
+				setText(slot2:Find("nameBar/Text"), uv2[slot3.ship_group].name)
+			else
+				SetActive(slot2:Find("nameBar"), false)
+			end
+
+			slot6 = nil
+
+			if uv3 and uv4 and uv4 < slot1 + 1 then
+				slot6 = (slot1 + 1 - uv4) * uv5 - uv6
+
+				if #uv7 > 1 then
+					slot6 = slot6 + (#uv7 - 1) * uv8
+				end
+			end
+
+			if slot3.ship_group ~= 0 then
+				slot7 = "unknown"
+
+				if uv2[slot3.ship_group] then
+					slot7 = (slot3.ship_group ~= uv9 or not uv10.isII or slot8.sculpture_ii == "" or slot8.sculpture_ii) and slot8.sculpture
+				end
+
+				if slot3.type ~= 5 then
+					setImageSprite(slot2:Find("charaMessageCard/charaBg/chara"), LoadSprite("qicon/" .. slot7), false)
+				end
+
+				if slot3.type == 1 then
+					uv11:SetCharaMessageCardActive(slot4, {
+						3
+					})
+					setText(slot2:Find("charaMessageCard/msgBox/msg"), slot3.param)
+
+					if uv3 and uv4 and uv4 < slot1 + 1 then
+						SetActive(slot2, false)
+						uv11:StartTimer(function ()
+							SetActive(uv0, true)
+							uv0:Find("charaMessageCard/charaBg"):GetComponent(typeof(Animation)):Play("anim_newinstagram_charabg")
+							SetActive(uv0:Find("charaMessageCard/waiting"), true)
+							SetActive(uv0:Find("charaMessageCard/msgBox"), false)
+							Canvas.ForceUpdateCanvases()
+							LeanTween.value(go(uv1.rightPanel:Find("chat/messageScroll")), uv2.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv3)):setEase(LeanTweenType.easeInOutCubic)
+							uv1:StartTimer(function ()
+								SetActive(uv0:Find("charaMessageCard/waiting"), false)
+								SetActive(uv0:Find("charaMessageCard/msgBox"), true)
+								uv0:Find("charaMessageCard/msgBox"):GetComponent(typeof(Animation)):Play("anim_newinstagram_chat_common_in")
+
+								if uv1 + 1 ~= #uv2 then
+									uv3:ChangeCharaTextFunc(uv4, uv5.param)
+								else
+									uv3:emit(InstagramChatMediator.SET_READED, {
+										uv6.topicId
+									})
+								end
+
+								Canvas.ForceUpdateCanvases()
+								LeanTween.value(go(uv3.rightPanel:Find("chat/messageScroll")), uv7.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv8)):setEase(LeanTweenType.easeInOutCubic)
+								uv3:SetEndAniEvent(uv0:Find("charaMessageCard/msgBox"), function ()
+									if uv0.shouldShowOption and uv1 + 1 == #uv2 then
+										uv0:SetOptionPanelActive(true)
+									end
+								end)
+							end, uv9)
+						end, slot6)
+					end
+				elseif slot3.type == 2 then
+					uv11:SetCharaMessageCardActive(slot4, {
+						2,
+						7
+					})
+					pg.CriMgr.GetInstance():GetCueInfo("cv-" .. slot3.ship_group, slot3.param[1], function (slot0)
+						setText(uv0:Find("charaMessageCard/voiceBox/time"), tostring(math.ceil(tonumber(tostring(slot0.length)) / 1000)) .. "\"")
+					end)
+					onButton(uv11, slot2:Find("charaMessageCard/voiceBox"), function ()
+						pg.CriMgr.GetInstance():PlaySoundEffect_V3("event:/cv/" .. uv0.ship_group .. "/" .. uv0.param[1])
+					end, SFX_PANEL)
+					setText(slot2:Find("charaMessageCard/voiceMsgBox/voiceMsg/msg"), slot3.param[2])
+
+					if uv3 and uv4 and uv4 < slot1 + 1 then
+						SetActive(slot2, false)
+						uv11:StartTimer(function ()
+							SetActive(uv0, true)
+							uv0:Find("charaMessageCard/charaBg"):GetComponent(typeof(Animation)):Play("anim_newinstagram_charabg")
+							SetActive(uv0:Find("charaMessageCard/waiting"), true)
+							SetActive(uv0:Find("charaMessageCard/voiceBox"), false)
+							SetActive(uv0:Find("charaMessageCard/voiceMsgBox"), false)
+							Canvas.ForceUpdateCanvases()
+							LeanTween.value(go(uv1.rightPanel:Find("chat/messageScroll")), uv2.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv3)):setEase(LeanTweenType.easeInOutCubic)
+							uv1:StartTimer(function ()
+								SetActive(uv0:Find("charaMessageCard/waiting"), false)
+								SetActive(uv0:Find("charaMessageCard/voiceBox"), true)
+								SetActive(uv0:Find("charaMessageCard/voiceMsgBox"), true)
+								uv0:Find("charaMessageCard/voiceBox"):GetComponent(typeof(Animation)):Play("anim_newinstagram_chat_common_in")
+								uv0:Find("charaMessageCard/voiceMsgBox"):GetComponent(typeof(Animation)):Play("anim_newinstagram_voicetip_in")
+
+								if uv1 + 1 ~= #uv2 then
+									uv3:ChangeCharaTextFunc(uv4, "<color=#ff6666>" .. i18n("juuschat_chattip1") .. "</color>")
+								else
+									uv3:emit(InstagramChatMediator.SET_READED, {
+										uv5.topicId
+									})
+								end
+
+								Canvas.ForceUpdateCanvases()
+								LeanTween.value(go(uv3.rightPanel:Find("chat/messageScroll")), uv6.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv7)):setEase(LeanTweenType.easeInOutCubic)
+								uv3:SetEndAniEvent(uv0:Find("charaMessageCard/voiceBox"), function ()
+									if uv0.shouldShowOption and uv1 + 1 == #uv2 then
+										uv0:SetOptionPanelActive(true)
+									end
+								end)
+							end, uv8)
+						end, slot6)
+					end
+				elseif slot3.type == 3 then
+					uv11:SetCharaMessageCardActive(slot4, {
+						5
+					})
+
+					slot9 = uv14[tonumber(slot3.param)]
+
+					setText(slot2:Find("charaMessageCard/redPacket/desc"), slot9.desc)
+
+					slot10 = uv10:RedPacketGotFlag(slot9.id)
+
+					SetActive(slot2:Find("charaMessageCard/redPacket/got"), slot10)
+					uv11:SetRedPacketPanel(slot2:Find("charaMessageCard/redPacket"), slot9, slot10, slot7, uv10.topicId, slot3.id)
+
+					if uv3 and uv4 and slot1 + 1 == uv4 then
+						uv11:ChangeCharaTextFunc(uv9, "<color=#ff6666>" .. i18n("juuschat_chattip2") .. "</color>" .. pg.activity_ins_redpackage[tonumber(slot3.param)].desc)
+					end
+
+					if uv3 and uv4 and uv4 < slot1 + 1 then
+						SetActive(slot2, false)
+						uv11:StartTimer(function ()
+							SetActive(uv0, true)
+							uv0:Find("charaMessageCard/charaBg"):GetComponent(typeof(Animation)):Play("anim_newinstagram_charabg")
+							SetActive(uv0:Find("charaMessageCard/waiting"), true)
+							SetActive(uv0:Find("charaMessageCard/redPacket"), false)
+							Canvas.ForceUpdateCanvases()
+							LeanTween.value(go(uv1.rightPanel:Find("chat/messageScroll")), uv2.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv3)):setEase(LeanTweenType.easeInOutCubic)
+							uv1:StartTimer(function ()
+								SetActive(uv0:Find("charaMessageCard/waiting"), false)
+								SetActive(uv0:Find("charaMessageCard/redPacket"), true)
+								uv0:Find("charaMessageCard/redPacket"):GetComponent(typeof(Animation)):Play("anim_newinstagram_redpacket_in")
+
+								if uv1 + 1 ~= #uv2 then
+									uv3:ChangeCharaTextFunc(uv4, "<color=#ff6666>" .. i18n("juuschat_chattip2") .. "</color>" .. pg.activity_ins_redpackage[tonumber(uv5.param)].desc)
+								else
+									uv3:emit(InstagramChatMediator.SET_READED, {
+										uv6.topicId
+									})
+								end
+
+								Canvas.ForceUpdateCanvases()
+								LeanTween.value(go(uv3.rightPanel:Find("chat/messageScroll")), uv7.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv8)):setEase(LeanTweenType.easeInOutCubic)
+								uv3:SetEndAniEvent(uv0:Find("charaMessageCard/redPacket"), function ()
+									if uv0.shouldShowOption and uv1 + 1 == #uv2 then
+										uv0:SetOptionPanelActive(true)
+									end
+								end)
+							end, uv9)
+						end, slot6)
+					end
+				elseif slot3.type == 4 then
+					uv11:SetCharaMessageCardActive(slot4, {
+						4
+					})
+					uv11:ClearEmoji(slot2:Find("charaMessageCard/emoji/emoticon"))
+					uv11:SetEmoji(slot2:Find("charaMessageCard/emoji/emoticon"), uv15[tonumber(slot3.param)].pic)
+
+					if uv3 and uv4 and uv4 < slot1 + 1 then
+						SetActive(slot2, false)
+						uv11:StartTimer(function ()
+							SetActive(uv0, true)
+							uv0:Find("charaMessageCard/charaBg"):GetComponent(typeof(Animation)):Play("anim_newinstagram_charabg")
+							SetActive(uv0:Find("charaMessageCard/waiting"), true)
+							SetActive(uv0:Find("charaMessageCard/emoji"), false)
+							Canvas.ForceUpdateCanvases()
+							LeanTween.value(go(uv1.rightPanel:Find("chat/messageScroll")), uv2.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv3)):setEase(LeanTweenType.easeInOutCubic)
+							uv1:StartTimer(function ()
+								SetActive(uv0:Find("charaMessageCard/waiting"), false)
+								SetActive(uv0:Find("charaMessageCard/emoji"), true)
+								uv0:Find("charaMessageCard/emoji"):GetComponent(typeof(Animation)):Play("anim_newinstagram_emoji_in")
+
+								if uv1 + 1 ~= #uv2 then
+									uv5:ChangeCharaTextFunc(uv6, string.gsub(uv3[tonumber(uv4.param)].desc, "#%w+>", "#28af6e>"))
+								else
+									uv5:emit(InstagramChatMediator.SET_READED, {
+										uv7.topicId
+									})
+								end
+
+								Canvas.ForceUpdateCanvases()
+								LeanTween.value(go(uv5.rightPanel:Find("chat/messageScroll")), uv8.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv9)):setEase(LeanTweenType.easeInOutCubic)
+								uv5:SetEndAniEvent(uv0:Find("charaMessageCard/emoji"), function ()
+									if uv0.shouldShowOption and uv1 + 1 == #uv2 then
+										uv0:SetOptionPanelActive(true)
+									end
+								end)
+							end, uv10)
+						end, slot6)
+					end
+				elseif slot3.type == 5 then
+					uv11:SetCharaMessageCardActive(slot4, {
+						6
+					})
+
+					slot9 = slot3.param
+
+					for slot13 in string.gmatch(slot3.param, "'%d+'") do
+						slot9 = string.gsub(slot9, slot13, "<color=#93e9ff>" .. uv2[tonumber(string.sub(slot13, 2, #slot13 - 1))].name .. "</color>")
+					end
+
+					setText(slot2:Find("charaMessageCard/systemTip/systemTipPanel/panel/Text"), slot9)
+
+					if uv3 and uv4 and uv4 < slot1 + 1 then
+						SetActive(slot2, false)
+						uv11:StartTimer(function ()
+							SetActive(uv0, true)
+							uv0:Find("charaMessageCard/systemTip/systemTipPanel"):GetComponent(typeof(Animation)):Play("anim_newinstagram_tip_in")
+
+							if uv1 + 1 ~= #uv2 then
+								uv3:ChangeCharaTextFunc(uv4, uv5)
+							else
+								uv3:emit(InstagramChatMediator.SET_READED, {
+									uv6.topicId
+								})
+							end
+
+							Canvas.ForceUpdateCanvases()
+							LeanTween.value(go(uv3.rightPanel:Find("chat/messageScroll")), uv7.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv8)):setEase(LeanTweenType.easeInOutCubic)
+							uv3:SetEndAniEvent(uv0:Find("charaMessageCard/systemTip/systemTipPanel"), function ()
+								if uv0.shouldShowOption and uv1 + 1 == #uv2 then
+									uv0:SetOptionPanelActive(true)
+								end
+							end)
+						end, slot6)
+					end
+				end
+			else
+				if slot3.type == 1 then
+					uv11:SetPlayerMessageCardActive(slot5, {
+						0
+					})
+					setText(slot2:Find("playerReplyCard/msgBox/msg"), slot3.param)
+				elseif slot3.type == 4 then
+					uv11:SetPlayerMessageCardActive(slot5, {
+						1
+					})
+					uv11:ClearEmoji(slot2:Find("playerReplyCard/emoji/emoticon"))
+					uv11:SetEmoji(slot2:Find("playerReplyCard/emoji/emoticon"), uv15[tonumber(slot3.param)].pic)
+				elseif slot3.type == 5 then
+					uv11:SetPlayerMessageCardActive(slot5, {
+						2
+					})
+
+					slot7 = slot3.param
+
+					for slot11 in string.gmatch(slot3.param, "'%d+'") do
+						slot7 = string.gsub(slot7, slot11, "<color=#93e9ff>" .. uv2[tonumber(string.sub(slot11, 2, #slot11 - 1))].name .. "</color>")
+					end
+
+					setText(slot2:Find("playerReplyCard/systemTip/panel/Text"), slot7)
+				end
+
+				if uv3 and uv4 and _.contains(uv7, slot1 + 1) then
+					if table.indexof(uv7, slot1 + 1) < #uv7 then
+						SetActive(slot2, false)
+						uv11:StartTimer(function ()
+							SetActive(uv0, true)
+
+							if uv1.type == 1 then
+								uv0:Find("playerReplyCard/msgBox"):GetComponent(typeof(Animation)):Play("anim_newinstagram_playerchat_common_in")
+								uv2:ChangeCharaTextFunc(uv3, uv1.param)
+							elseif uv1.type == 4 then
+								uv0:Find("playerReplyCard/emoji"):GetComponent(typeof(Animation)):Play("anim_newinstagram_emoji_in")
+								uv2:ChangeCharaTextFunc(uv3, string.gsub(uv4[tonumber(uv1.param)].desc, "#%w+>", "#28af6e>"))
+							elseif uv1.type == 5 then
+								uv0:Find("playerReplyCard/systemTip"):GetComponent(typeof(Animation)):Play("anim_newinstagram_tip_in")
+
+								slot0 = uv1.param
+
+								for slot4 in string.gmatch(uv1.param, "'%d+'") do
+									slot0 = string.gsub(slot0, slot4, "<color=#93e9ff>" .. uv5[tonumber(string.sub(slot4, 2, #slot4 - 1))].name .. "</color>")
+								end
+
+								uv2:ChangeCharaTextFunc(uv3, slot0)
+							end
+
+							if uv6 + 1 == #uv7 then
+								uv2:emit(InstagramChatMediator.SET_READED, {
+									uv8.topicId
+								})
+							end
+
+							Canvas.ForceUpdateCanvases()
+							LeanTween.value(go(uv2.rightPanel:Find("chat/messageScroll")), uv9.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(uv10)):setEase(LeanTweenType.easeInOutCubic)
+						end, (#uv7 - table.indexof(uv7, slot1 + 1)) * uv8)
+					else
+						if slot3.type == 1 then
+							slot2:Find("playerReplyCard/msgBox"):GetComponent(typeof(Animation)):Play("anim_newinstagram_playerchat_common_in")
+							uv11:ChangeCharaTextFunc(uv9, slot3.param)
+						elseif slot3.type == 4 then
+							slot2:Find("playerReplyCard/emoji"):GetComponent(typeof(Animation)):Play("anim_newinstagram_emoji_in")
+							uv11:ChangeCharaTextFunc(uv9, string.gsub(uv15[tonumber(slot3.param)].desc, "#%w+>", "#28af6e>"))
+						elseif slot3.type == 5 then
+							slot2:Find("playerReplyCard/systemTip"):GetComponent(typeof(Animation)):Play("anim_newinstagram_tip_in")
+
+							slot7 = slot3.param
+
+							for slot11 in string.gmatch(slot3.param, "'%d+'") do
+								slot7 = string.gsub(slot7, slot11, "<color=#93e9ff>" .. uv2[tonumber(string.sub(slot11, 2, #slot11 - 1))].name .. "</color>")
+							end
+
+							uv11:ChangeCharaTextFunc(uv9, slot7)
+						end
+
+						if slot1 + 1 == #uv0 then
+							uv11:emit(InstagramChatMediator.SET_READED, {
+								uv10.topicId
+							})
+						end
+					end
+				end
+			end
+
+			if not uv10:isWaiting() and slot1 + 1 == #uv0 then
+				if uv3 then
+					if slot3.ship_group ~= 0 then
+						uv11:StartTimer(function ()
+							setActive(uv0:Find("end"), true)
+						end, slot6 + uv5)
+					else
+						uv11:StartTimer(function ()
+							setActive(uv0:Find("end"), true)
+						end, (#uv7 - table.indexof(uv7, slot1 + 1)) * uv8 + uv8)
+					end
+				else
+					setActive(slot2:Find("end"), true)
+				end
+			else
+				setActive(slot2:Find("end"), false)
+			end
+		end
+	end)
+	slot0.messageList:align(#slot2)
+
+	if slot3 then
+		Canvas.ForceUpdateCanvases()
+		LeanTween.value(go(slot0.rightPanel:Find("chat/messageScroll")), slot8.normalizedPosition.y, 0, 0.5):setOnUpdate(System.Action_float(slot9)):setEase(LeanTweenType.easeInOutCubic)
+	else
+		scrollToBottom(slot0.rightPanel:Find("chat/messageScroll"))
+	end
+end
+
+slot0.SetCharaMessageCardActive = function(slot0, slot1, slot2)
+	if _.contains(slot2, 6) then
+		SetActive(slot1:GetChild(0), false)
+	else
+		SetActive(slot1:GetChild(0), true)
+	end
+
+	for slot6 = 1, slot1.childCount - 1 do
+		if _.contains(slot2, slot6) then
+			SetActive(slot1:GetChild(slot6), true)
+		else
+			SetActive(slot1:GetChild(slot6), false)
+		end
+	end
+end
+
+slot0.SetPlayerMessageCardActive = function(slot0, slot1, slot2)
+	for slot6 = 0, slot1.childCount - 1 do
+		if _.contains(slot2, slot6) then
+			SetActive(slot1:GetChild(slot6), true)
+		else
+			SetActive(slot1:GetChild(slot6), false)
+		end
+	end
+end
+
+slot0.SetEmoji = function(slot0, slot1, slot2)
+	slot3 = PoolMgr.GetInstance()
+
+	slot3:GetPrefab("emoji/" .. slot2, slot2, true, function (slot0)
+		if not IsNil(uv0) then
+			slot0.name = uv1
+			tf(slot0).sizeDelta = uv0.sizeDelta
+			tf(slot0).anchoredPosition = Vector2.zero
+
+			if slot0:GetComponent("Animator") then
+				slot1.enabled = true
+			end
+
+			setParent(slot0, uv0, false)
+		else
+			PoolMgr.GetInstance():ReturnPrefab("emoji/" .. uv1, uv1, slot0)
+		end
+	end)
+end
+
+slot0.ClearEmoji = function(slot0, slot1)
+	eachChild(slot1, function (slot0)
+		slot1 = go(slot0)
+
+		PoolMgr.GetInstance():ReturnPrefab("emoji/" .. slot1.name, slot1.name, slot1)
+	end)
+end
+
+slot0.UpdateOptionPanel = function(slot0, slot1, slot2)
+	if slot2[#slot2].option and type(slot3) == "table" then
+		slot0.shouldShowOption = true
+		slot0.optionCount = #slot3
+
+		slot0:SetOptionPanelActive(true)
+		slot0.optionList:make(function (slot0, slot1, slot2)
+			if slot0 == UIItemList.EventUpdate then
+				setText(slot2:Find("Text"), HXSet.hxLan(uv0[slot1 + 1][2]))
+				onButton(uv1, slot2, function ()
+					uv0:emit(InstagramChatMediator.REPLY, uv1.topicId, uv2[#uv2].id, uv3[1])
+					pg.GameTrackerMgr.GetInstance():Record(GameTrackerBuilder.BuildJuusOfficialAccountsClick(1, uv1.topicId, 1))
+				end, SFX_PANEL)
+			end
+		end)
+		slot0.optionList:align(#slot3)
+	else
+		slot0:SetOptionPanelActive(false)
+
+		slot0.shouldShowOption = false
+	end
+end
+
+slot0.SetOptionPanelActive = function(slot0, slot1)
+	SetActive(slot0.optionPanel, slot1)
+
+	slot2 = slot0.rightPanel:Find("chat/messageScroll/Viewport/Content"):GetComponent(typeof(VerticalLayoutGroup))
+	slot3 = UnityEngine.RectOffset.New()
+	slot3.left = 0
+	slot3.right = 0
+	slot3.top = 0
+	slot4 = slot0.rightPanel:Find("chat/messageScroll/Scrollbar Vertical"):GetComponent(typeof(RectTransform))
+
+	if slot1 then
+		slot3.bottom = 42 + 88 * slot0.optionCount
+		slot4.sizeDelta = Vector2(slot0.messageScrollWidth, -slot3.bottom)
+	else
+		slot3.bottom = 50
+		slot4.sizeDelta = Vector2(slot0.messageScrollWidth, 0)
+	end
+
+	slot2.padding = slot3
+
+	scrollToBottom(slot0.rightPanel:Find("chat/messageScroll"))
+end
+
+slot0.SetFilterPanel = function(slot0)
+	slot0.readFilter = slot0.readFilter or uv0.ReadType[1]
+	slot0.typeFilter = slot0.typeFilter or uv0.TypeType[1]
+	slot0.campFilter = slot0.campFilter or {
+		uv0.CampIds[1]
+	}
+	slot1 = slot0.filterUI:Find("panel/filterScroll/Viewport/Content/read")
+	slot2 = slot0.filterUI:Find("panel/filterScroll/Viewport/Content/type")
+	slot3 = slot0.filterUI:Find("panel/filterScroll/Viewport/Content/camp")
+	slot4 = UIItemList.New(slot3, slot3:Find("option"))
+
+	onButton(slot0, slot0.filterBtn, function ()
+		SetActive(uv0.filterUI, true)
+		pg.UIMgr.GetInstance():BlurPanel(uv0.filterUI)
+
+		for slot3, slot4 in ipairs(uv1.ReadType) do
+			SetActive(uv2:GetChild(slot3):Find("selectedFrame"), uv0.readFilter == slot4)
+			onButton(uv0, slot5, function ()
+				for slot3, slot4 in ipairs(uv0.ReadType) do
+					SetActive(uv1:GetChild(slot3):Find("selectedFrame"), false)
+				end
+
+				SetActive(uv2, true)
+			end, SFX_PANEL)
+		end
+
+		for slot3, slot4 in ipairs(uv1.TypeType) do
+			SetActive(uv3:GetChild(slot3):Find("selectedFrame"), uv0.typeFilter == slot4)
+			onButton(uv0, slot5, function ()
+				for slot3, slot4 in ipairs(uv0.TypeType) do
+					SetActive(uv1:GetChild(slot3):Find("selectedFrame"), false)
+				end
+
+				SetActive(uv2, true)
+			end, SFX_PANEL)
+		end
+
+		uv4:make(function (slot0, slot1, slot2)
+			if slot0 == UIItemList.EventUpdate then
+				setText(slot2:Find("Text"), i18n(uv0.CampNames[slot1 + 1]))
+				SetActive(slot2:Find("selectedFrame"), _.contains(uv1.campFilter, uv0.CampIds[slot1 + 1]))
+				onButton(uv1, slot2, function ()
+					if uv0 == 0 then
+						SetActive(uv1, true)
+
+						for slot3 = 2, #uv2.CampIds do
+							SetActive(uv3:GetChild(slot3 - 1):Find("selectedFrame"), false)
+						end
+					else
+						SetActive(uv1, not isActive(uv1))
+
+						slot0 = true
+						slot1 = true
+
+						for slot5 = 2, #uv2.CampIds do
+							if not isActive(uv3:GetChild(slot5 - 1):Find("selectedFrame")) then
+								slot0 = false
+							end
+
+							if isActive(uv3:GetChild(slot5 - 1):Find("selectedFrame")) then
+								slot1 = false
+							end
+						end
+
+						if slot0 then
+							slot5 = "selectedFrame"
+
+							SetActive(uv3:GetChild(0):Find(slot5), true)
+
+							for slot5 = 2, #uv2.CampIds do
+								SetActive(uv3:GetChild(slot5 - 1):Find("selectedFrame"), false)
+							end
+						elseif slot1 then
+							SetActive(uv3:GetChild(0):Find("selectedFrame"), true)
+						else
+							SetActive(uv3:GetChild(0):Find("selectedFrame"), false)
+						end
+					end
+				end, SFX_PANEL)
+			end
+		end)
+		uv4:align(#uv1.CampIds)
+	end, SFX_PANEL)
+	onButton(slot0, slot0.filterUI:Find("bg"), function ()
+		uv0:CloseFilterPanel()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.filterUI:Find("panel/bottom/close"), function ()
+		uv0:CloseFilterPanel()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.filterUI:Find("panel/bottom/ok"), function ()
+		for slot3, slot4 in ipairs(uv0.ReadType) do
+			if isActive(uv1:GetChild(slot3):Find("selectedFrame")) then
+				uv2.readFilter = slot4
+			end
+		end
+
+		for slot3, slot4 in ipairs(uv0.TypeType) do
+			if isActive(uv3:GetChild(slot3):Find("selectedFrame")) then
+				uv2.typeFilter = slot4
+			end
+		end
+
+		uv2.campFilter = {}
+
+		for slot3, slot4 in ipairs(uv0.CampIds) do
+			if isActive(uv4:GetChild(slot3 - 1):Find("selectedFrame")) then
+				table.insert(uv2.campFilter, slot4)
+			end
+		end
+
+		uv2:CloseFilterPanel()
+		uv2:SetFilterResult()
+	end, SFX_PANEL)
+end
+
+slot0.SetFilterResult = function(slot0)
+	slot1 = true
+	slot2 = false
+
+	if not slot0.readFilter then
+		slot0.readFilter = uv0.ReadType[1]
+		slot0.typeFilter = uv0.TypeType[1]
+		slot0.campFilter = {
+			uv0.CampIds[1]
+		}
+	end
+
+	slot0.chatList = table.insertto({}, slot0.allChatList)
+
+	for slot6 = #slot0.chatList, 1, -1 do
+		slot7 = slot0.chatList[slot6]
+		slot8 = true
+
+		if slot0.readFilter ~= "all" and slot7:GetCharacterEndFlag() ~= (slot0.readFilter == "hasReaded" and 1 or 0) then
+			slot8 = false
+		end
+
+		if slot0.typeFilter ~= "all" and slot7.type ~= (slot0.typeFilter == "single" and 1 or 2) then
+			slot8 = false
+		end
+
+		if not _.contains(slot0.campFilter, 0) and not _.contains(slot0.campFilter, slot7.nationality) then
+			slot8 = false
+		end
+
+		if not slot8 then
+			table.remove(slot0.chatList, slot6)
+		end
+
+		if slot8 then
+			slot1 = false
+		end
+
+		if slot0.currentChat and slot0.currentChat.characterId == slot7.characterId and slot8 then
+			slot2 = true
+		end
+	end
+
+	slot3 = slot0.readFilter == "all" and slot0.typeFilter == "all" and _.contains(slot0.campFilter, 0)
+
+	SetActive(slot0.isFiltered, not slot3)
+
+	if slot3 then
+		slot0:InsertOfficialAccounts()
+	end
+
+	if slot1 then
+		SetActive(slot0.leftPanel:Find("charaScroll"), false)
+		SetActive(slot0._tf:Find("main/noFilteredMessageBg"), true)
+		SetActive(slot0.rightPanel, false)
+		SetActive(slot0._tf:Find("main/rightNoMessageBg"), false)
+	else
+		SetActive(slot0.leftPanel:Find("charaScroll"), true)
+		slot0.charaScrollrect:SetTotalCount(#slot0.chatList)
+		SetActive(slot0._tf:Find("main/noFilteredMessageBg"), false)
+
+		if slot2 then
+			SetActive(slot0.rightPanel, true)
+			SetActive(slot0._tf:Find("main/rightNoMessageBg"), false)
+		else
+			SetActive(slot0.rightPanel, false)
+			SetActive(slot0._tf:Find("main/rightNoMessageBg"), true)
+
+			slot0.currentChat = nil
+
+			if slot0.cancelFrame then
+				slot0.cancelFrame()
+
+				slot0.cancelFrame = nil
+			end
+		end
+	end
+end
+
+slot0.CloseFilterPanel = function(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0.filterUI, slot0._tf:Find("subPages"))
+	SetActive(slot0.filterUI, false)
+end
+
+slot0.SetTopicPanel = function(slot0, slot1)
+	SetActive(slot0.topicBtn:Find("tip"), slot1:GetCharacterEndFlagExceptCurrent() == 0)
+	onButton(slot0, slot0.topicBtn, function ()
+		SetActive(uv0.topicUI, true)
+		pg.UIMgr.GetInstance():BlurPanel(uv0.topicUI)
+
+		uv0.currentTopic = nil
+
+		uv1:SortTopicList()
+
+		slot0 = {}
+		slot1 = {}
+
+		for slot5, slot6 in ipairs(uv1.topics) do
+			if slot6.active then
+				if slot6.isII then
+					table.insert(slot1, slot6)
+				else
+					table.insert(slot0, slot6)
+				end
+			end
+		end
+
+		setActive(uv0.topicUI:Find("panel/topicScroll/Viewport/Content/self"), #slot0 > 0)
+		setActive(uv0.topicUI:Find("panel/topicScroll/Viewport/Content/other"), #slot1 > 0)
+		setActive(uv0.topicUI:Find("panel/topicScroll/Viewport/Content/line"), #slot0 > 0 and #slot1 > 0)
+
+		if #slot0 > 0 then
+			slot2 = UIItemList.New(uv0.topicUI:Find("panel/topicScroll/Viewport/Content/self"), uv0.topicUI:Find("panel/topicScroll/Viewport/Content/self/topic"))
+
+			slot2:make(function (slot0, slot1, slot2)
+				if slot0 == UIItemList.EventUpdate then
+					uv1:SetTopic(slot2, uv2, uv0[slot1 + 1], uv0, uv3)
+				end
+			end)
+			slot2:align(#slot0)
+		end
+
+		if #slot1 > 0 then
+			slot2 = UIItemList.New(uv0.topicUI:Find("panel/topicScroll/Viewport/Content/other"), uv0.topicUI:Find("panel/topicScroll/Viewport/Content/other/topic"))
+
+			slot2:make(function (slot0, slot1, slot2)
+				if slot0 == UIItemList.EventUpdate then
+					uv1:SetTopic(slot2, uv2, uv0[slot1 + 1], uv3, uv0)
+				end
+			end)
+			slot2:align(#slot1)
+		end
+	end, SFX_PANEL)
+	onButton(slot0, slot0.topicUI:Find("bg"), function ()
+		uv0:CloseTopicPanel()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.topicUI:Find("panel/bottom/close"), function ()
+		uv0:CloseTopicPanel()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.topicUI:Find("panel/bottom/ok"), function ()
+		uv0:emit(InstagramChatMediator.SET_CURRENT_TOPIC, uv0.currentTopic.topicId)
+		uv0:CloseTopicPanel()
+
+		slot0 = uv0.rightPanel:GetComponent(typeof(Animation))
+
+		slot0:Stop()
+		slot0:Play("anim_newinstagram_chat_right_in")
+		pg.GameTrackerMgr.GetInstance():Record(GameTrackerBuilder.BuildJuusOfficialAccountsClick(0, uv0.currentTopic.topicId, 1))
+	end, SFX_PANEL)
+end
+
+slot0.SetTopic = function(slot0, slot1, slot2, slot3, slot4, slot5)
+	setScrollText(slot1:Find("mask/name"), HXSet.hxLan(slot3.name))
+	SetActive(slot1:Find("lock"), not slot3.active)
+	SetActive(slot1:Find("waiting"), slot3.active and slot3:isWaiting())
+	SetActive(slot1:Find("complete"), slot3.active and slot3:IsCompleted())
+	SetActive(slot1:Find("selectedFrame"), slot2.currentTopicId == slot3.topicId)
+	SetActive(slot1:Find("selected"), slot2.currentTopicId == slot3.topicId)
+	SetActive(slot1:Find("tip"), slot3.active and not slot3:IsCompleted())
+
+	if slot2.currentTopicId == slot3.topicId then
+		slot0.currentTopic = slot3
+	end
+
+	SetActive(slot1, slot3.active)
+
+	if slot3.active then
+		onButton(slot0, slot1, function ()
+			for slot3 = 1, #uv0 do
+				SetActive(uv1.topicUI:Find("panel/topicScroll/Viewport/Content/self"):GetChild(slot3 - 1):Find("selectedFrame"), false)
+			end
+
+			for slot3 = 1, #uv2 do
+				SetActive(uv1.topicUI:Find("panel/topicScroll/Viewport/Content/other"):GetChild(slot3 - 1):Find("selectedFrame"), false)
+			end
+
+			SetActive(uv3:Find("selectedFrame"), true)
+
+			uv1.currentTopic = uv4
+		end, SFX_PANEL)
+	else
+		onButton(slot0, slot1, function ()
+			pg.TipsMgr.GetInstance():ShowTips(uv0.unlockDesc)
+		end, SFX_PANEL)
+	end
+end
+
+slot0.CloseTopicPanel = function(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0.topicUI, slot0._tf:Find("subPages"))
+	SetActive(slot0.topicUI, false)
+end
+
+slot0.SetBackgroundPanel = function(slot0, slot1)
+	if slot1.type == 2 then
+		SetActive(slot0.backgroundBtn, false)
+
+		return
+	end
+
+	SetActive(slot0.backgroundBtn, true)
+	onButton(slot0, slot0.backgroundBtn, function ()
+		SetActive(uv0.backgroundUI, true)
+		pg.UIMgr.GetInstance():BlurPanel(uv0.backgroundUI)
+
+		uv0.currentBgId = nil
+		slot1 = UIItemList.New(uv0.backgroundUI:Find("panel/backgroundScroll/Viewport/Content"), uv0.backgroundUI:Find("panel/backgroundScroll/Viewport/Content/background"))
+
+		slot1:make(function (slot0, slot1, slot2)
+			if slot0 == UIItemList.EventUpdate then
+				slot3 = uv0[slot1 + 1]
+				slot4 = slot3.id
+
+				LoadImageSpriteAsync("herohrzicon/" .. slot3.painting, slot2:Find("skinMask/skin"), false)
+				setScrollText(slot2:Find("skinMask/Panel/mask/Text"), slot3.name)
+				SetActive(slot2:Find("lockFrame"), not (getProxy(ShipSkinProxy):hasSkin(slot3.id) or slot3.skin_type == ShipSkin.SKIN_TYPE_DEFAULT or slot3.skin_type == ShipSkin.SKIN_TYPE_PROPOSE or slot3.skin_type == ShipSkin.SKIN_TYPE_REMAKE))
+
+				if uv1.skinId ~= 0 then
+					SetActive(slot2:Find("selectedFrame"), uv1.skinId == slot4)
+					SetActive(slot2:Find("selected"), uv1.skinId == slot4)
+
+					if uv1.skinId == slot4 then
+						uv2.currentBgId = slot4
+					end
+				else
+					SetActive(slot2:Find("selectedFrame"), uv1:GetPaintingId() == slot4)
+					SetActive(slot2:Find("selected"), slot7 == slot4)
+
+					if slot7 == slot4 then
+						uv2.currentBgId = slot4
+					end
+				end
+
+				onButton(uv2, slot2, function ()
+					if uv0 then
+						slot3 = "selectedFrame"
+
+						SetActive(uv1:Find(slot3), true)
+
+						for slot3 = 1, #uv2 do
+							if slot3 ~= uv3 + 1 then
+								SetActive(uv4.backgroundUI:Find("panel/backgroundScroll/Viewport/Content"):GetChild(slot3 - 1):Find("selectedFrame"), false)
+							end
+						end
+
+						uv4.currentBgId = uv5
+					else
+						pg.TipsMgr.GetInstance():ShowTips(i18n("juuschat_background_tip2"))
+					end
+				end, SFX_PANEL)
+			end
+		end)
+		slot1:align(#uv1:GetSkins())
+	end, SFX_PANEL)
+
+	slot4 = slot0.backgroundUI
+
+	onButton(slot0, slot4:Find("bg"), function ()
+		uv0:CloseBackgroundPanel()
+	end, SFX_PANEL)
+
+	slot4 = slot0.backgroundUI
+
+	onButton(slot0, slot4:Find("panel/bottom/close"), function ()
+		uv0:CloseBackgroundPanel()
+	end, SFX_PANEL)
+
+	slot4 = slot0.backgroundUI
+
+	onButton(slot0, slot4:Find("panel/bottom/ok"), function ()
+		uv0:emit(InstagramChatMediator.SET_CURRENT_BACKGROUND, uv1.characterId, uv0.currentBgId)
+		uv0:CloseBackgroundPanel()
+	end, SFX_PANEL)
+end
+
+slot0.CloseBackgroundPanel = function(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0.backgroundUI, slot0._tf:Find("subPages"))
+	SetActive(slot0.backgroundUI, false)
+end
+
+slot0.SetRedPacketPanel = function(slot0, slot1, slot2, slot3, slot4, slot5, slot6)
+	onButton(slot0, slot1, function ()
+		SetActive(uv0.redPacketUI, true)
+		pg.UIMgr.GetInstance():BlurPanel(uv0.redPacketUI)
+		setImageSprite(uv0.redPacketUI:Find("panel/charaBg/chara"), LoadSprite("qicon/" .. uv1), false)
+
+		if not uv2 then
+			slot1 = uv0.redPacketUI
+
+			SetActive(slot1:Find("panel/panelBg"), true)
+
+			slot1 = uv0.redPacketUI
+
+			SetActive(slot1:Find("panel/openImg"), false)
+
+			slot1 = uv0.redPacketUI
+
+			SetActive(slot1:Find("panel/get"), true)
+
+			slot1 = uv0.redPacketUI
+
+			SetActive(slot1:Find("panel/got"), false)
+
+			slot1 = uv0.redPacketUI
+
+			SetActive(slot1:Find("panel/detail"), false)
+
+			slot1 = uv0.redPacketUI
+
+			setText(slot1:Find("panel/get/titleBg/title"), uv3.desc)
+
+			slot2 = uv0.redPacketUI
+
+			onButton(uv0, slot2:Find("panel/get/getBtn"), function ()
+				uv0:emit(InstagramChatMediator.GET_REDPACKET, uv1, uv2, uv3.id)
+			end, SFX_PANEL)
+		else
+			uv0:UpdateRedPacketUI(uv3.id)
+		end
+	end, SFX_PANEL)
+
+	slot9 = slot0.redPacketUI
+
+	onButton(slot0, slot9:Find("bg"), function ()
+		uv0:CloseRedPacketPanel()
+
+		if uv0.canFresh then
+			uv0.canFresh = false
+			slot0 = uv0.currentChat.currentTopic:GetDisplayWordList()
+
+			if slot0[#slot0].type == 0 then
+				uv0:UpdateCharaList(false, false)
+			else
+				uv0:UpdateCharaList(true, false)
+			end
+		end
+	end, SFX_PANEL)
+end
+
+slot0.UpdateRedPacketUI = function(slot0, slot1)
+	slot2 = uv0[slot1]
+
+	SetActive(slot0.redPacketUI:Find("panel/panelBg"), true)
+	SetActive(slot0.redPacketUI:Find("panel/openImg"), false)
+	SetActive(slot0.redPacketUI:Find("panel/get"), false)
+	SetActive(slot0.redPacketUI:Find("panel/got"), true)
+	SetActive(slot0.redPacketUI:Find("panel/detail"), false)
+
+	slot3 = Drop.Create(slot2.content)
+	slot3.count = 0
+
+	updateDrop(slot0.redPacketUI:Find("panel/got/item"), slot3)
+	onButton(slot0, slot0.redPacketUI:Find("panel/got/item"), function ()
+		uv0:emit(BaseUI.ON_DROP, uv1)
+	end, SFX_PANEL)
+
+	slot0.redPacketUI:Find("panel/got/item/icon_bg"):GetComponent(typeof(Image)).enabled = false
+	slot0.redPacketUI:Find("panel/got/item/icon_bg/frame"):GetComponent(typeof(Image)).enabled = false
+
+	setText(slot0.redPacketUI:Find("panel/got/awardCount"), slot2.content[3])
+
+	if slot2.type == 1 then
+		SetActive(slot0.redPacketUI:Find("panel/got/detailBtn"), false)
+	else
+		slot5 = slot0.redPacketUI
+
+		SetActive(slot5:Find("panel/got/detailBtn"), true)
+
+		slot6 = slot0.redPacketUI
+
+		onButton(slot0, slot6:Find("panel/got/detailBtn"), function ()
+			SetActive(uv0.redPacketUI:Find("panel/panelBg"), false)
+			SetActive(uv0.redPacketUI:Find("panel/openImg"), true)
+			SetActive(uv0.redPacketUI:Find("panel/got"), false)
+			SetActive(uv0.redPacketUI:Find("panel/detail"), true)
+
+			slot0 = 0
+			slot1 = 0
+			slot6 = "panel/detail/detailScroll/Viewport/Content/charaGetCard"
+			slot2 = UIItemList.New(uv0.redPacketUI:Find("panel/detail/detailScroll/Viewport/Content"), uv0.redPacketUI:Find(slot6))
+
+			slot2:make(function (slot0, slot1, slot2)
+				if slot0 == UIItemList.EventUpdate then
+					slot3 = uv0.group_receive[slot1 + 1]
+					slot4 = slot3[1]
+					slot5 = {
+						slot3[2],
+						slot3[3],
+						slot3[4]
+					}
+
+					if slot3[1] ~= 0 then
+						slot6 = "unknown"
+
+						if uv1[slot4] then
+							slot6 = uv1[slot4].sculpture
+						end
+
+						setImageSprite(slot2:Find("charaBg/chara"), LoadSprite("qicon/" .. slot6), false)
+					else
+						setImageSprite(slot2:Find("charaBg/chara"), GetSpriteFromAtlas("ui/InstagramUI_atlas", "txdi_3"), false)
+					end
+
+					slot6 = Drop.Create(slot5)
+					slot6.count = 0
+
+					updateDrop(slot2:Find("item"), slot6)
+					onButton(uv2, slot2:Find("item"), function ()
+						uv0:emit(BaseUI.ON_DROP, uv1)
+					end, SFX_PANEL)
+
+					slot2:Find("item/icon_bg"):GetComponent(typeof(Image)).enabled = false
+					slot2:Find("item/icon_bg/frame"):GetComponent(typeof(Image)).enabled = false
+
+					setText(slot2:Find("awardCount"), slot3[4])
+
+					if uv3 < slot3[4] then
+						uv4 = slot1
+						uv3 = slot3[4]
+					end
+				end
+			end)
+			slot2:align(#uv1.group_receive)
+
+			for slot6 = 1, #uv1.group_receive do
+				SetActive(uv0.redPacketUI:Find("panel/detail/detailScroll/Viewport/Content"):GetChild(slot6 - 1):Find("charaBg/king"), slot0 == slot6 - 1)
+			end
+		end, SFX_PANEL)
+	end
+end
+
+slot0.CloseRedPacketPanel = function(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0.redPacketUI, slot0._tf:Find("subPages"))
+	SetActive(slot0.redPacketUI, false)
+end
+
+slot0.SetData = function(slot0)
+	slot1 = getProxy(InstagramChatProxy)
+	slot0.allChatList = slot1:GetChatList()
+	slot0.chatList = table.insertto({}, slot0.allChatList)
+
+	slot1:SortChatList()
+end
+
+slot0.willExit = function(slot0)
+	slot1 = slot0.rightPanel:Find("chat/paintingMask/painting")
+
+	if slot0.paintingName then
+		retPaintingPrefab(slot1, slot0.paintingName)
+
+		slot0.paintingName = nil
+	end
+
+	slot0:RemoveAllTimer()
+	slot0:EixtOfficialAccounts()
+end
+
+slot0.StartTimer = function(slot0, slot1, slot2)
+	slot3 = Timer.New(slot1, slot2, 1)
+
+	slot3:Start()
+	table.insert(slot0.timerList, slot3)
+end
+
+slot0.RemoveAllTimer = function(slot0)
+	for slot4, slot5 in ipairs(slot0.timerList) do
+		slot5:Stop()
+	end
+
+	slot0.timerList = {}
+end
+
+slot0.StartTimer2 = function(slot0, slot1, slot2)
+	slot0.timer = Timer.New(slot1, slot2, 1)
+
+	slot0.timer:Start()
+end
+
+slot0.SpeedUpMessage = function(slot0)
+	slot1 = pg.gameset.juuschat_dialogue_trigger_time.key_value / 1000
+	slot2 = pg.gameset.juuschat_entering_time.key_value / 1000
+
+	for slot6, slot7 in ipairs(slot0.timerList) do
+		if slot7.running then
+			if slot7.duration == slot2 then
+				slot7.time = 0.05
+			elseif slot7.time - slot1 < 0.05 then
+				slot7.time = 0.05
+
+				slot0:StartTimer2(function ()
+					uv0:SpeedUpWaiting()
+				end, 0.05)
+			else
+				slot7.time = slot7.time - slot1
+			end
+		end
+	end
+end
+
+slot0.SpeedUpWaiting = function(slot0)
+	slot1 = pg.gameset.juuschat_entering_time.key_value / 1000
+
+	for slot5, slot6 in ipairs(slot0.timerList) do
+		if slot6.running and slot6.duration == slot1 then
+			slot6.time = 0.05
+
+			break
+		end
+	end
+end
+
+slot0.ChangeFresh = function(slot0)
+	slot0.canFresh = true
+end
+
+slot0.ChangeCharaTextFunc = function(slot0, slot1, slot2)
+	slot3 = function(slot0)
+		if slot0:Find("chat/id"):GetComponent(typeof(Text)).text == tostring(uv0) then
+			setText(slot0:Find("chat/msg"), uv1)
+		end
+	end
+
+	for slot7 = 0, slot0.charaScrollContent.childCount - 1 do
+		slot3(slot0.charaScrollContent:GetChild(slot7))
+	end
+end
+
+slot0.ResetCharaTextFunc = function(slot0, slot1)
+	slot2 = function(slot0)
+		if slot0:Find("chat/id"):GetComponent(typeof(Text)).text == tostring(uv0) then
+			setText(slot0:Find("chat/msg"), slot0:Find("chat/displayWord"):GetComponent(typeof(Text)).text)
+		end
+	end
+
+	for slot6 = 0, slot0.charaScrollContent.childCount - 1 do
+		slot2(slot0.charaScrollContent:GetChild(slot6))
+	end
+end
+
+slot0.SetEndAniEvent = function(slot0, slot1, slot2)
+	if slot1:GetComponent(typeof(DftAniEvent)) then
+		slot3:SetEndEvent(function ()
+			uv0()
+			uv1:SetEndEvent(nil)
+		end)
+	end
+end
+
+slot0.onBackPressed = function(slot0)
+	if isActive(slot0.filterUI) then
+		slot0:CloseFilterPanel()
+
+		return
+	end
+
+	if isActive(slot0.topicUI) then
+		slot0:CloseTopicPanel()
+
+		return
+	end
+
+	if isActive(slot0.backgroundUI) then
+		slot0:CloseBackgroundPanel()
+
+		return
+	end
+
+	if isActive(slot0.redPacketUI) then
+		slot0:CloseRedPacketPanel()
+
+		return
+	end
+
+	if isActive(slot0.rightOfficialAccountsPanel) and isActive(slot0.rightOfficialAccountsInfoPanel) then
+		slot0:ExitOfficialAccountsInfo()
+
+		return
+	end
+
+	slot0:emit(InstagramChatMediator.CLOSE_ALL)
+end
+
+slot0.InitOfficialAccounts = function(slot0)
+	slot0.rightOfficialAccountsListPanel = slot0.rightOfficialAccountsPanel:Find("officialAccountsPanel")
+	slot0.rightOfficialAccountsInfoPanel = slot0.rightOfficialAccountsPanel:Find("officialAccountsInfoPanel")
+
+	setText(slot0.rightOfficialAccountsListPanel:Find("topBg/Text"), i18n("juusoa_title"))
+	setText(slot0.rightOfficialAccountsInfoPanel:Find("topBg/Text"), i18n("juusoa_title"))
+
+	slot0.officialAccountsScroll = slot0.rightOfficialAccountsListPanel:Find("charaScroll"):GetComponent("LScrollRect")
+	slot0.officialAccountsScroll.onInitItem = handler(slot0, slot0.OfficialAccountsInitItem)
+	slot0.officialAccountsScroll.onUpdateItem = handler(slot0, slot0.OfficialAccountsUpdateItem)
+	slot0.downloadmgr = BulletinBoardMgr.Inst
+	slot0.sprites = {}
+	slot0.toDownloadList = {}
+	slot0.officialAccountsInfoScroll = slot0.rightOfficialAccountsInfoPanel:Find("scroll"):GetComponent(typeof(ScrollRect))
+	slot0.officialAccountsInfoItem = slot0.rightOfficialAccountsInfoPanel:Find("scroll/content/infoItem")
+	slot0.commentList = UIItemList.New(slot0.rightOfficialAccountsInfoPanel:Find("scroll/content/commentPanel"), slot0.rightOfficialAccountsInfoPanel:Find("scroll/content/commentPanel/tpl"))
+	slot0.commentPanel = slot0.rightOfficialAccountsInfoPanel:Find("last/bg2")
+	slot0.optionalPanel = slot0.rightOfficialAccountsInfoPanel:Find("last/bg2/option")
+
+	setActive(slot0.rightOfficialAccountsPanel, false)
+	setActive(slot0.rightOfficialAccountsInfoPanel, false)
+end
+
+slot0.UpdateOfficialAccounts = function(slot0, slot1)
+	setActive(slot0.rightChatPanel, false)
+	setActive(slot0.rightOfficialAccountsPanel, true)
+	setActive(slot0.rightOfficialAccountsListPanel, true)
+	setActive(slot0.rightOfficialAccountsInfoPanel, false)
+
+	slot0.currentChat = slot1
+	slot0.instagramOfficialAccounts = {}
+
+	for slot5, slot6 in pairs(getProxy(InstagramProxy):GetOfficialAccounts()) do
+		table.insert(slot0.instagramOfficialAccounts, slot6)
+	end
+
+	table.sort(slot0.instagramOfficialAccounts, function (slot0, slot1)
+		return slot1.id < slot0.id
+	end)
+	slot0.officialAccountsScroll:SetTotalCount(#slot0.instagramOfficialAccounts)
+end
+
+slot0.OfficialAccountsInitItem = function(slot0, slot1)
+	slot0.officialAccountsItemList[slot1] = InstagramOfficialAccountsItem.New(tf(slot1), slot0)
+end
+
+slot0.OfficialAccountsUpdateItem = function(slot0, slot1, slot2)
+	if slot0.officialAccountsItemList[slot2] == nil then
+		slot0:OfficialAccountsInitItem(slot2)
+
+		slot3 = slot0.officialAccountsItemList[slot2]
+	end
+
+	slot4 = slot0.instagramOfficialAccounts[slot1 + 1]
+	slot5 = tf(slot2)
+
+	slot3:SetData(slot4.id)
+
+	slot9 = slot5:Find("Image")
+
+	slot0:SetImageByUrl(slot4.oaListPic, slot9:GetComponent(typeof(RawImage)))
+	onButton(slot0, slot5, function ()
+		uv0.currentOfficalID = uv1.id
+
+		pg.GameTrackerMgr.GetInstance():Record(GameTrackerBuilder.BuildJuusOfficialAccountsClick(0, uv1.id, 2))
+		uv0:ShowOfficialAccountsInfo(uv1)
+		uv0:ReadOfficialAccountComment()
+
+		uv0.officialAccountsInfoScroll.verticalNormalizedPosition = 1
+	end, SFX_PANEL)
+end
+
+slot0.ShowOfficialAccountsInfo = function(slot0, slot1)
+	setActive(slot0.rightOfficialAccountsListPanel, false)
+	setActive(slot0.rightOfficialAccountsInfoPanel, true)
+	slot0:CloseCommentPanel()
+
+	slot4 = slot0.rightOfficialAccountsInfoPanel
+
+	onButton(slot0, slot4:Find("topBg"), function ()
+		uv0:ExitOfficialAccountsInfo()
+	end, SFX_PANEL)
+
+	slot3 = slot0.officialAccountsInfoItem
+
+	setScrollText(slot3:Find("title/Text"), HXSet.hxLan(slot1:getConfig("title")))
+
+	slot3 = slot0.officialAccountsInfoItem
+
+	setText(slot3:Find("content"), slot1:GetContent())
+
+	slot5 = slot0.officialAccountsInfoItem
+	slot5 = slot5:Find("Image/Image")
+
+	slot0:SetImageByUrl(slot1:GetImage(), slot5:GetComponent(typeof(RawImage)))
+
+	slot3 = slot0.officialAccountsInfoItem
+
+	setText(slot3:Find("bottom/time"), slot1:GetPushTime())
+	slot0:UpdateLinkBtn(slot1.id)
+
+	slot4 = slot0.officialAccountsInfoItem
+
+	onButton(slot0, slot4:Find("bottom/time/share"), function ()
+		uv0:emit(InstagramChatMediator.ON_OFFICIAL_ACCOUNTS_OPERATE, ActivityConst.INSTAGRAM_OP_SHARE, uv1.id)
+	end, SFX_PANEL)
+	slot0:UpdateCommentList(slot1.id)
+	Canvas.ForceUpdateCanvases()
+	onToggle(slot0, slot0.commentPanel, function (slot0)
+		if slot0 then
+			uv0:OpenCommentPanel(uv1.id)
+		else
+			uv0:CloseCommentPanel()
+		end
+	end, SFX_PANEL)
+end
+
+slot0.ExitOfficialAccountsInfo = function(slot0)
+	setActive(slot0.rightOfficialAccountsListPanel, true)
+	setActive(slot0.rightOfficialAccountsInfoPanel, false)
+
+	slot0.currentOfficalID = nil
+end
+
+slot0.UpdateLinkBtn = function(slot0, slot1)
+	slot4 = slot0.officialAccountsInfoItem:Find("bottom/notCare")
+
+	if not getProxy(InstagramProxy):GetOfficialAccounts()[slot1]:IsLiking() then
+		onButton(slot0, slot4, function ()
+			uv0:emit(InstagramChatMediator.ON_OFFICIAL_ACCOUNTS_OPERATE, ActivityConst.INSTAGRAM_OP_LIKE, uv1.id)
+		end, SFX_PANEL)
+	else
+		removeOnButton(slot4)
+	end
+
+	setActive(slot4, not slot3)
+	setActive(slot0.officialAccountsInfoItem:Find("bottom/care"), slot3)
+	setText(slot0.officialAccountsInfoItem:Find("bottom/careText"), i18n("ins_word_like", slot2:GetLikeCnt()))
+end
+
+slot0.UpdateCommentList = function(slot0, slot1)
+	if slot0.currentOfficalID ~= slot1 then
+		return
+	end
+
+	if not getProxy(InstagramProxy):GetOfficialAccounts()[slot1] then
+		return
+	end
+
+	slot3, slot4 = slot2:GetCanDisplayComments()
+
+	table.sort(slot3, function (slot0, slot1)
+		return slot0.time < slot1.time
+	end)
+	slot0.commentList:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			slot3 = uv0[slot1 + 1]
+			slot4 = slot3:HasReply()
+
+			setText(slot2:Find("main/reply"), slot3:GetReplyBtnTxt())
+			setText(slot2:Find("main/content"), HXSet.hxLan(SwitchSpecialChar(slot3:GetContent())))
+			setText(slot2:Find("main/bubble/Text"), slot3:GetReplyCnt())
+			setText(slot2:Find("main/time"), slot3:GetTime())
+
+			if slot3:GetType() == Instagram.TYPE_PLAYER_COMMENT then
+				slot6, slot7 = slot3:GetIcon()
+
+				setImageSprite(slot2:Find("main/head/icon"), GetSpriteFromAtlas(slot6, slot7))
+			else
+				setImageSprite(slot2:Find("main/head/icon"), LoadSprite("qicon/" .. slot3:GetIcon()), false)
+			end
+
+			if slot4 then
+				onToggle(uv1, slot2:Find("main/bubble"), function (slot0)
+					setActive(uv0:Find("replys"), slot0)
+				end, SFX_PANEL)
+				uv1:UpdateReplys(slot2, slot3)
+				triggerToggle(slot2:Find("main/bubble"), true)
+			else
+				setActive(slot2:Find("replys"), false)
+				triggerToggle(slot2:Find("main/bubble"), false)
+			end
+
+			slot2:Find("main/bubble"):GetComponent(typeof(Toggle)).enabled = slot4
+		end
+	end)
+	Canvas.ForceUpdateCanvases()
+	slot0.commentList:align(#slot3)
+end
+
+slot0.UpdateReplys = function(slot0, slot1, slot2)
+	slot3, slot4 = slot2:GetCanDisplayReply()
+	slot5 = UIItemList.New(slot1:Find("replys"), slot1:Find("replys/sub"))
+
+	table.sort(slot3, function (slot0, slot1)
+		if slot0.level == slot1.level then
+			if slot0.time == slot1.time then
+				return slot0.id < slot1.id
+			else
+				return slot0.time < slot1.time
+			end
+		else
+			return slot0.level < slot1.level
+		end
+	end)
+	slot5:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			slot3 = uv0[slot1 + 1]
+
+			setImageSprite(slot2:Find("head/icon"), LoadSprite("qicon/" .. slot3:GetIcon()), false)
+			setText(slot2:Find("content"), HXSet.hxLan(SwitchSpecialChar(slot3:GetContent())))
+		end
+	end)
+	slot5:align(#slot3)
+end
+
+slot0.OpenCommentPanel = function(slot0, slot1)
+	if not getProxy(InstagramProxy):GetOfficialAccounts()[slot1]:CanOpenComment() then
+		return
+	end
+
+	setActive(slot0.optionalPanel, true)
+
+	slot3 = slot2:GetOptionComment()
+	slot0.commentPanel.sizeDelta = Vector2(0, #slot3 * 120 + 40)
+	slot4 = UIItemList.New(slot0.optionalPanel, slot0.optionalPanel:Find("option1"))
+
+	slot4:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			slot3 = slot1 + 1
+			slot5 = uv0[slot3].id
+			slot6 = uv0[slot3].index
+
+			setText(slot2:Find("Text"), HXSet.hxLan(uv0[slot3].text))
+			onButton(uv1, slot2, function ()
+				pg.GameTrackerMgr.GetInstance():Record(GameTrackerBuilder.BuildJuusOfficialAccountsClick(1, uv0, 2))
+				uv1:emit(InstagramChatMediator.ON_OFFICIAL_ACCOUNTS_OPERATE, ActivityConst.INSTAGRAM_OP_COMMENT, uv0, uv2, uv3)
+				uv1:CloseCommentPanel()
+			end, SFX_PANEL)
+		end
+	end)
+	slot4:align(#slot3)
+end
+
+slot0.CloseCommentPanel = function(slot0)
+	slot0.commentPanel.sizeDelta = Vector2(0, 0)
+
+	setActive(slot0.optionalPanel, false)
+end
+
+slot0.ReadOfficialAccountComment = function(slot0)
+	if slot0.currentChat and slot0.currentChat.chatType == InstagramConst.INSTAGRAM_CHAT_TYPE.OFFICIAL_ACCOUNT and slot0.currentOfficalID and getProxy(InstagramProxy):GetOfficialAccounts()[slot0.currentOfficalID] and not slot1:IsReaded() then
+		slot0:emit(InstagramChatMediator.ON_OFFICIAL_ACCOUNTS_OPERATE, ActivityConst.INSTAGRAM_OP_MARK_READ, slot0.currentOfficalID)
+	end
+end
+
+slot0.RefreshOfficialAccountTips = function(slot0)
+	for slot4, slot5 in pairs(slot0.officialAccountsItemList) do
+		slot5:RefreshTip()
+	end
+
+	slot0.charaScrollrect:SetTotalCount(#slot0.chatList)
+end
+
+slot0.SetImageByUrl = function(slot0, slot1, slot2, slot3)
+	if not slot1 or slot1 == "" then
+		setActive(slot2.gameObject, false)
+
+		if slot3 then
+			slot3()
+		end
+	else
+		setActive(slot2.gameObject, true)
+
+		if slot0.sprites[slot1] then
+			slot2.texture = slot4
+
+			if slot3 then
+				slot3()
+			end
+		else
+			slot2.enabled = false
+			slot5 = slot0.downloadmgr
+
+			slot5:GetTexture("ins", "1", slot1, UnityEngine.Events.UnityAction_UnityEngine_Texture(function (slot0)
+				if uv0.exited then
+					return
+				end
+
+				if not uv0.sprites then
+					return
+				end
+
+				uv0.sprites[uv1] = slot0
+				uv2.texture = slot0
+				uv2.enabled = true
+
+				if uv3 then
+					uv3()
+				end
+			end))
+			table.insert(slot0.toDownloadList, slot1)
+		end
+	end
+end
+
+slot0.AddOfficialAccountsTimer = function(slot0)
+	slot0:StopOfficialAccountsTimer()
+
+	slot2 = pg.TimeMgr.GetInstance():GetServerTime()
+
+	for slot6, slot7 in pairs(getProxy(InstagramProxy):GetOfficialAccounts()) do
+		if slot7:GetFastestRefreshTime() then
+			if slot8 - slot2 <= 0 then
+				slot0:emit(InstagramChatMediator.ON_OFFICIAL_ACCOUNTS_OPERATE, ActivityConst.INSTAGRAM_OP_UPDATE, slot7.id)
+			else
+				slot0.officialAccountsTimerList[slot7.id] = Timer.New(function ()
+					uv0:emit(InstagramChatMediator.ON_OFFICIAL_ACCOUNTS_OPERATE, ActivityConst.INSTAGRAM_OP_UPDATE, uv1.id)
+				end, slot9, 1)
+
+				slot0.officialAccountsTimerList[slot7.id]:Start()
+			end
+		end
+	end
+end
+
+slot0.StopOfficialAccountsTimer = function(slot0)
+	for slot4, slot5 in pairs(slot0.officialAccountsTimerList) do
+		slot0.officialAccountsTimerList[slot4]:Stop()
+	end
+
+	slot0.officialAccountsTimerList = {}
+end
+
+slot0.EixtOfficialAccounts = function(slot0)
+	slot0:StopOfficialAccountsTimer()
+
+	slot0.officialAccountsItemList = nil
+	slot0.exited = true
+	slot0.sprites = nil
+	slot1 = ipairs
+	slot2 = slot0.toDownloadList or {}
+
+	for slot4, slot5 in slot1(slot2) do
+		slot0.downloadmgr:StopLoader(slot5)
+	end
+
+	slot0.toDownloadList = {}
+end
+
+return slot0

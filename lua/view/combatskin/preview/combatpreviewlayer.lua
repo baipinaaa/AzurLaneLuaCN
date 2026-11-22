@@ -1,0 +1,150 @@
+slot0 = class("CombatPreviewLayer", import("view.base.BaseSubView"))
+slot1 = 12
+slot2 = 3
+slot3 = Vector3(0, 1, 40)
+
+slot0.getUIName = function(slot0)
+	return "CombatPreviewUI"
+end
+
+slot0.PushAllResource = function()
+	slot0 = {}
+
+	slot1 = function(slot0)
+		if noEmptyStr(slot0) and not table.contains(uv0, slot0) then
+			table.insert(uv0, slot0)
+		end
+	end
+
+	for slot5, slot6 in ipairs(pg.item_data_battleui.all) do
+		if pg.item_data_battleui[slot6] and noEmptyStr(slot7.key) then
+			slot1("ui/CombatUI" .. slot7.key)
+			slot1("ui/CombatHPBar" .. slot7.key)
+			slot1(ys.Battle.BattleResourceManager.GetUIPath("CombatHPPop" .. slot7.key))
+		end
+	end
+
+	return slot0
+end
+
+slot0.OnInit = function(slot0)
+	slot0.OverlayMain = pg.UIMgr.GetInstance().OverlayMain
+
+	setParent(slot0._go, slot0.OverlayMain)
+
+	slot1 = pg.UIMgr.GetInstance()
+
+	slot1:BlurPanel(slot0._tf)
+
+	slot1 = slot0._tf
+	slot0.preview = slot1:Find("preview")
+	slot1 = slot0._tf
+	slot0.uiLayer = slot1:Find("preview/ui")
+	slot1 = slot0._tf
+	slot0.sea = slot1:Find("preview/sea")
+	slot1 = slot0.sea
+	slot0.rawImage = slot1:GetComponent("RawImage")
+	slot2 = slot0.preview
+
+	setText(slot2:Find("bg/title/Image"), i18n("word_preview"))
+	onButton(slot0, slot0.preview, function ()
+		uv0.callBack()
+	end, SFX_PANEL)
+end
+
+slot0.Show = function(slot0, slot1, slot2)
+	slot0.callBack = slot2
+	slot4 = pg.item_data_battleui[slot1].key
+	slot5 = "CombatUI" .. slot4
+	slot6 = "CombatHPBar" .. slot4
+	slot7, slot8, slot9 = nil
+
+	seriesAsync({
+		function (slot0)
+			slot1 = PoolMgr.GetInstance()
+
+			slot1:GetUI(uv0, true, function (slot0)
+				uv0 = slot0
+
+				uv1()
+			end)
+		end,
+		function (slot0)
+			slot1 = PoolMgr.GetInstance()
+
+			slot1:GetUI(uv0, true, function (slot0)
+				uv0 = slot0
+
+				uv1()
+			end)
+		end,
+		function (slot0)
+			slot1 = PoolMgr.GetInstance()
+
+			slot1:GetUI(uv0, true, function (slot0)
+				uv0 = slot0
+
+				uv1()
+			end)
+		end
+	}, function ()
+		if uv0._state == uv1.STATES.DESTROY then
+			slot0 = PoolMgr.GetInstance()
+
+			slot0:ReturnUI(uv2, uv3)
+			slot0:ReturnUI(uv2, uv4)
+			slot0:ReturnUI(uv5, uv6)
+
+			return
+		end
+
+		slot0 = uv6.transform
+
+		slot0:SetParent(uv0.uiLayer, false)
+
+		slot0 = uv3.transform
+
+		slot0:SetParent(uv0.uiLayer, false)
+
+		slot0 = uv4.transform
+
+		slot0:SetParent(uv0.uiLayer, false)
+
+		uv6.transform.localScale = Vector3(uv0.sea.rect.width / 1920, uv0.sea.rect.height / 1080, 1)
+		uv0.previewer = CombatUIPreviewer.New(uv0.rawImage)
+		slot2 = uv0.previewer
+
+		slot2:setDisplayWeapon({
+			100
+		})
+
+		slot2 = uv0.previewer
+
+		slot2:setCombatUI(uv6, uv3, uv4, uv7)
+
+		slot4 = uv0.previewer
+
+		slot4:load(40000, Ship.New({
+			id = 100001,
+			configId = 100001,
+			skin_id = 100000
+		}), Ship.New({
+			id = 100011,
+			configId = 100011,
+			skin_id = 100010
+		}), {}, function ()
+		end)
+	end)
+end
+
+slot0.OnDestroy = function(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0._tf)
+
+	if slot0.previewer then
+		slot0.previewer:clear()
+
+		slot0.previewer = nil
+	end
+end
+
+return slot0

@@ -1,0 +1,189 @@
+slot0 = class("RefluxScene", import("..base.BaseUI"))
+slot0.Sign = 1
+slot0.Task = 2
+slot0.PT = 3
+slot0.Shop = 4
+
+slot0.getUIName = function(slot0)
+	return "RefluxUI"
+end
+
+slot0.init = function(slot0)
+	slot0:findUI()
+	slot0:initData()
+	slot0:addListener()
+end
+
+slot0.didEnter = function(slot0)
+	slot0:updateRedPotList()
+
+	if not getProxy(RefluxProxy):isInRefluxTime() then
+		slot0:closeView()
+
+		return
+	end
+
+	if not slot0:tryOpenLetterView() then
+		slot0:tryAutoOpenLastView()
+	end
+
+	slot0:updateDay()
+	slot0:OverlayPanel(slot0._tf)
+end
+
+slot0.willExit = function(slot0)
+	for slot4, slot5 in ipairs(slot0.viewList) do
+		if slot5 and slot5:GetLoaded() then
+			slot5:Destroy()
+		end
+	end
+
+	if slot0.letterView then
+		slot0.letterView:Destroy()
+
+		slot0.letterView = nil
+
+		return
+	end
+
+	slot0:UnOverlayPanel(slot0._tf, slot0._parentTf)
+end
+
+slot0.onBackPressed = function(slot0)
+	if slot0.letterView and slot0.letterView:isShowing() then
+		slot0.letterView:Hide()
+
+		slot0.letterView = nil
+
+		return
+	end
+
+	slot0:closeView()
+end
+
+slot0.findUI = function(slot0)
+	slot0.letterContainer = slot0._tf:Find("PanelLetter")
+	slot0.panelContainer = slot0._tf:Find("PanelContainer")
+	slot1 = slot0._tf:Find("left/left_bar")
+	slot0.letterBtn = slot1:Find("letter")
+	slot0.signToggle = slot1:Find("tabs/sign")
+	slot0.taskToggle = slot1:Find("tabs/task")
+	slot0.ptToggle = slot1:Find("tabs/pt")
+	slot0.shopToggle = slot1:Find("tabs/shop")
+	slot0.toggleList = {
+		[uv0.Sign] = slot0.signToggle,
+		[uv0.Task] = slot0.taskToggle,
+		[uv0.PT] = slot0.ptToggle,
+		[uv0.Shop] = slot0.shopToggle
+	}
+	slot0.redPotList = {
+		[uv0.Sign] = slot0.signToggle:Find("Red"),
+		[uv0.Task] = slot0.taskToggle:Find("Red"),
+		[uv0.PT] = slot0.ptToggle:Find("Red"),
+		[uv0.Shop] = slot0.shopToggle:Find("Red")
+	}
+	slot0.backBtn = slot1:Find("back")
+	slot0.dayText = slot0._tf:Find("left/time/text")
+
+	setText(slot0._tf:Find("left/time/icon"), i18n("reflux_word_1"))
+	setText(slot0._tf:Find("left/time/icon1"), i18n("word_date"))
+end
+
+slot0.initData = function(slot0)
+	slot0.curViewIndex = 0
+	slot0.letterView = RefluxAnimationPlayer.New(pg.UIMgr.GetInstance().OverlayUITop)
+	slot0.signView = RefluxSignView.New(slot0.panelContainer, slot0.event, slot0.contextData)
+	slot0.taskView = RefluxTaskView.New(slot0.panelContainer, slot0.event, slot0.contextData)
+	slot0.ptView = RefluxPTView.New(slot0.panelContainer, slot0.event, slot0.contextData)
+	slot0.shopView = RefluxShopView.New(slot0.panelContainer, slot0.event, slot0.contextData)
+	slot0.viewList = {
+		[uv0.Sign] = slot0.signView,
+		[uv0.Task] = slot0.taskView,
+		[uv0.PT] = slot0.ptView,
+		[uv0.Shop] = slot0.shopView
+	}
+end
+
+slot0.addListener = function(slot0)
+	onButton(slot0, slot0.backBtn, function ()
+		uv0:onBackPressed()
+	end, SFX_CANCEL)
+	onButton(slot0, slot0.letterBtn, function ()
+		uv0:switchLetter()
+	end, SFX_PANEL)
+	onToggle(slot0, slot0.signToggle, function (slot0)
+		if slot0 == true then
+			uv0:switchPage(uv1.Sign)
+		end
+	end, SFX_PANEL)
+	onToggle(slot0, slot0.taskToggle, function (slot0)
+		if slot0 == true then
+			uv0:switchPage(uv1.Task)
+		end
+	end, SFX_PANEL)
+	onToggle(slot0, slot0.ptToggle, function (slot0)
+		if slot0 == true then
+			uv0:switchPage(uv1.PT)
+		end
+	end, SFX_PANEL)
+	onToggle(slot0, slot0.shopToggle, function (slot0)
+		if slot0 == true then
+			uv0:switchPage(uv1.Shop)
+			uv0:updateRedPotList()
+		end
+	end, SFX_PANEL)
+end
+
+slot0.tryOpenLetterView = function(slot0)
+	return false
+end
+
+slot0.switchPage = function(slot0, slot1)
+	if slot0.curViewIndex ~= slot1 then
+		slot2 = slot0.viewList[slot1]
+
+		slot2:Load()
+		slot2:ActionInvoke("Show")
+		slot2:ActionInvoke("updateOutline")
+
+		if slot0.curViewIndex > 0 then
+			slot0.viewList[slot0.curViewIndex]:Hide()
+		end
+
+		slot0.curViewIndex = slot1
+		slot0.contextData.lastViewIndex = slot1
+	end
+end
+
+slot0.tryAutoOpenLastView = function(slot0)
+	if slot0.contextData.lastViewIndex then
+		triggerToggle(slot0.toggleList[slot0.contextData.lastViewIndex], true)
+	else
+		triggerToggle(slot0.toggleList[uv0.Sign], true)
+	end
+end
+
+slot0.switchLetter = function(slot0)
+	slot1 = getProxy(RefluxProxy)
+	slot3 = slot0.letterView
+
+	slot3:ExecuteAction("Play4Review", slot1:GetRefluxBgs(), function ()
+		uv0.letterView:Hide()
+	end)
+end
+
+slot0.updateRedPotList = function(slot0)
+	setActive(slot0.redPotList[uv0.Sign], false)
+	setActive(slot0.redPotList[uv0.Task], RefluxTaskView.isAnyTaskCanGetAward())
+	setActive(slot0.redPotList[uv0.PT], RefluxPTView.isAnyPTCanGetAward())
+	setActive(slot0.redPotList[uv0.Shop], RefluxShopView.isShowRedPot())
+end
+
+slot0.updateDay = function(slot0)
+	slot2 = pg.TimeMgr.GetInstance()
+	slot3 = #pg.return_sign_template.all
+
+	setText(slot0.dayText, slot3 - math.clamp(slot2:DiffDay(getProxy(RefluxProxy).returnTimestamp, slot2:GetServerTime()), 0, slot3 - 1))
+end
+
+return slot0

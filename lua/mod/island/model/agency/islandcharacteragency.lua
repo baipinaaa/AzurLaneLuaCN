@@ -1,0 +1,438 @@
+slot0 = class("IslandCharacterAgency", import(".IslandBaseAgency"))
+slot0.ADD_SHIP = "IslandCharacterAgency:ADD_SHIP"
+slot0.SHIP_LEVEL_UP = "IslandCharacterAgency:SHIP_LEVEL_UP"
+slot0.SHIP_GET_STATE = "IslandCharacterAgency:SHIP_GET_STATE"
+slot0.CHANGE_CHARACTER_DRESS = "IslandCharacterAgency:CHANGE_CHARACTER_DRESS"
+slot0.SHIP_SKILL_STATE_CHANGE = "IslandCharacterAgency:SHIP_SKILL_STATE_CHANGE"
+slot0.NPC_CONFIG_ID = 1
+
+slot0.OnInit = function(slot0, slot1)
+	slot0.inviteList = {}
+	slot0.ships = {}
+	slot2 = ipairs
+	slot3 = slot1.ship_sys.invite_list or {}
+
+	for slot5, slot6 in slot2(slot3) do
+		table.insert(slot0.inviteList, slot6)
+	end
+
+	slot2 = ipairs
+	slot3 = slot1.ship_sys.ship_list or {}
+
+	for slot5, slot6 in slot2(slot3) do
+		slot7 = IslandShip.New(slot6)
+		slot0.ships[slot7.id] = slot7
+	end
+
+	slot2 = IslandNpcShip.New({
+		id = uv0.NPC_CONFIG_ID
+	})
+	slot0.ships[slot2.id] = slot2
+	slot0.hasDressData = {}
+	slot3 = ipairs
+	slot4 = slot1.ship_sys.had_dress or {}
+
+	for slot6, slot7 in slot3(slot4) do
+		slot0.hasDressData[slot7.id] = IslandOwnedDressItem.New(slot7)
+	end
+
+	slot0.read_list = slot1.ship_sys.read_list
+	slot0.shipSkinDic = {}
+
+	for slot6, slot7 in ipairs(slot1.ship_sys.skin_list) do
+		slot8 = slot0.shipSkinDic[slot7.ship_id] or {}
+
+		for slot12, slot13 in ipairs(slot7.skin_list) do
+			table.insert(slot8, IslandShipSkin.New(slot13))
+		end
+
+		slot0.shipSkinDic[slot7.ship_id] = slot8
+	end
+
+	slot0.shipWearDressData = {}
+	slot3 = ipairs
+	slot4 = slot1.ship_sys.wear_list or {}
+
+	for slot6, slot7 in slot3(slot4) do
+		slot8 = slot0.shipWearDressData[slot7.ship_id] or {}
+
+		table.insert(slot8, IslandShipDressItem.New(slot7))
+
+		slot0.shipWearDressData[slot7.ship_id] = slot8
+	end
+
+	slot0.gameViewIDList = {}
+
+	for slot6, slot7 in ipairs(slot1.ship_sys.game_ship_list) do
+		slot0.gameViewIDList[slot7.game_type] = slot7.ship_id
+	end
+end
+
+slot0.SetMiniGameShipViewId = function(slot0, slot1, slot2)
+	slot0.gameViewIDList[slot1] = slot2
+end
+
+slot0.GetViewGameShipViewId = function(slot0, slot1)
+	return slot0.gameViewIDList[slot1]
+end
+
+slot0.CanFollowPlayer = function(slot0, slot1)
+	if not slot0.ships[slot1] then
+		return false
+	end
+
+	slot4 = false
+
+	if #slot2:GetCantFollowTaskIdList() > 0 then
+		slot5 = slot0:GetHost()
+		slot6 = slot5:GetTaskAgency()
+		slot4 = _.any(slot3, function (slot0)
+			return uv0:GetTask(slot0) ~= nil
+		end)
+	end
+
+	return slot2:GetState() == IslandShip.STATE_NORMAL and not slot4
+end
+
+slot0.GetInviteList = function(slot0)
+	return slot0.inviteList
+end
+
+slot0.AddInvite = function(slot0, slot1)
+	table.insert(slot0.inviteList, slot1)
+end
+
+slot0.HasInvite = function(slot0, slot1)
+	return _.any(slot0.inviteList, function (slot0)
+		return uv0 == slot0
+	end)
+end
+
+slot0.RemoveInvite = function(slot0, slot1)
+	table.removebyvalue(slot0.inviteList, slot1)
+end
+
+slot0.GetShips = function(slot0)
+	slot1 = {}
+
+	for slot5, slot6 in pairs(slot0.ships) do
+		if slot6.id ~= uv0.NPC_CONFIG_ID then
+			table.insert(slot1, slot6)
+		end
+	end
+
+	return slot1
+end
+
+slot0.GetShipsContainNpc = function(slot0)
+	slot1 = {}
+
+	for slot5, slot6 in pairs(slot0.ships) do
+		table.insert(slot1, slot6)
+	end
+
+	return slot1
+end
+
+slot0.AddShip = function(slot0, slot1)
+	slot0.ships[slot1.id] = slot1
+
+	slot0:DispatchEvent(uv0.ADD_SHIP, slot1)
+end
+
+slot0.GetShipById = function(slot0, slot1)
+	return slot0.ships[slot1]
+end
+
+slot0.GetUnlockOrCanUnlockShipConfigIds = function(slot0)
+	slot1 = {}
+
+	for slot5, slot6 in ipairs(pg.island_chara_template.all) do
+		if slot6 ~= uv0.NPC_CONFIG_ID and (slot0.ships[slot6] or slot0:HasInvite(slot6)) then
+			table.insert(slot1, slot6)
+		end
+	end
+
+	table.sort(slot1, CompareFuncs({
+		function (slot0)
+			return uv0.ships[slot0] and 0 or 1
+		end,
+		function (slot0)
+			return slot0
+		end
+	}))
+
+	return slot1
+end
+
+slot0.GetUnlockOrCanUnlockShipConfigIdsContainNpc = function(slot0)
+	slot1 = {}
+
+	for slot5, slot6 in ipairs(pg.island_chara_template.all) do
+		if slot0.ships[slot6] or slot0:HasInvite(slot6) then
+			table.insert(slot1, slot6)
+		end
+	end
+
+	table.sort(slot1, CompareFuncs({
+		function (slot0)
+			return uv0.ships[slot0] and 0 or 1
+		end,
+		function (slot0)
+			return slot0
+		end
+	}))
+
+	return slot1
+end
+
+slot0.GetAllSkinCnt = function(slot0)
+	slot1 = 0
+
+	for slot5, slot6 in pairs(slot0.shipSkinDic) do
+		slot1 = slot1 + #slot6
+	end
+
+	return slot1
+end
+
+slot0.GetOwnSkinListByShipId = function(slot0, slot1)
+	return slot0.shipSkinDic[slot1] or {}
+end
+
+slot0.AddSkin = function(slot0, slot1)
+	slot3 = slot0.shipSkinDic[pg.island_skin_template[slot1].ship_group] or {}
+
+	table.insert(slot3, IslandShipSkin.New({
+		color_id = 0,
+		id = slot1,
+		color_list = {}
+	}))
+
+	slot0.shipSkinDic[slot2] = slot3
+end
+
+slot0.AddSkinColor = function(slot0, slot1, slot2, slot3)
+	slot4 = slot0.shipSkinDic[slot1] or {}
+
+	for slot8, slot9 in ipairs(slot4) do
+		if slot9.id == slot2 then
+			slot9:AddSkinColor(slot3)
+		end
+	end
+end
+
+slot0.GetCurrentSkinColorByShipId = function(slot0, slot1, slot2)
+	slot3 = ipairs
+	slot4 = slot0.shipSkinDic[slot1] or {}
+
+	for slot6, slot7 in slot3(slot4) do
+		if slot7.id == slot2 then
+			return slot7.color_id
+		end
+	end
+
+	return 0
+end
+
+slot0.GetAllOwnDressDic = function(slot0)
+	return slot0.hasDressData
+end
+
+slot0.GetDiffDressCnt = function(slot0)
+	return #underscore.keys(slot0.hasDressData)
+end
+
+slot0.GetDiffDressCntByType = function(slot0, slot1)
+	slot2 = {}
+
+	for slot6, slot7 in pairs(slot0.hasDressData) do
+		if pg.island_dress_template[slot6].type == slot1 and not table.contains(slot2, slot6) then
+			table.insert(slot2, slot6)
+		end
+	end
+
+	return #slot2
+end
+
+slot0.ExistDressId = function(slot0, slot1)
+	return slot0.hasDressData[slot1] ~= nil
+end
+
+slot0.GetDressIdRealCount = function(slot0, slot1)
+	slot2 = slot0:GetOwnDressCountByDressId()
+
+	for slot6, slot7 in pairs(slot0.shipWearDressData) do
+		for slot11, slot12 in ipairs(slot7) do
+			if slot12.dress_id == slot1 then
+				slot2 = slot2 + 1
+			end
+		end
+	end
+
+	return slot2
+end
+
+slot0.GetOwnDressCountByDressId = function(slot0, slot1)
+	return slot0.hasDressData[slot1] and slot0.hasDressData[slot1].num or 0
+end
+
+slot0.AddDressItem = function(slot0, slot1, slot2, slot3)
+	if not slot0.hasDressData[slot1] then
+		slot0.hasDressData[slot1] = IslandOwnedDressItem.New({
+			id = slot1,
+			num = slot2,
+			read = slot3 and 0 or 1
+		})
+	else
+		slot0.hasDressData[slot1].num = slot0.hasDressData[slot1].num + slot2
+
+		if slot3 then
+			slot0.hasDressData[slot1].read = 1
+		end
+	end
+end
+
+slot0.ReduceDressItem = function(slot0, slot1, slot2)
+	if not slot0.hasDressData[slot1] then
+		return
+	end
+
+	slot0.hasDressData[slot1].num = slot0.hasDressData[slot1].num - slot2
+end
+
+slot0.CheckSkinIsOwned = function(slot0, slot1)
+	if slot1 == 0 then
+		return true
+	end
+
+	slot6 = pg.island_skin_template[slot1].ship_group
+
+	for slot6, slot7 in pairs(slot0:GetOwnSkinListByShipId(slot6)) do
+		if slot7.id == slot1 then
+			return true
+		end
+	end
+
+	return false
+end
+
+slot0.GetSkinData = function(slot0, slot1)
+	if slot1 == 0 then
+		return nil
+	end
+
+	slot6 = pg.island_skin_template[slot1].ship_group
+
+	for slot6, slot7 in pairs(slot0:GetOwnSkinListByShipId(slot6)) do
+		if slot7.id == slot1 then
+			return slot7
+		end
+	end
+
+	return nil
+end
+
+slot0.SetSkinCurrentColor = function(slot0, slot1, slot2)
+	if slot1 == 0 then
+		return
+	end
+
+	if slot0:GetSkinData(slot1) then
+		slot3:SetCurrentColor(slot2)
+	end
+end
+
+slot0.GetSkinCurrentColor = function(slot0, slot1)
+	if slot1 == 0 then
+		return 0
+	end
+
+	if slot0:GetSkinData(slot1) then
+		return slot2:GetCurrentColor()
+	end
+
+	return 0
+end
+
+slot0.CheckSkinColorIsOwned = function(slot0, slot1, slot2)
+	if not slot0:GetSkinData(slot1) then
+		return false
+	end
+
+	return slot3:CheckColorOwned(slot2)
+end
+
+slot0.GetHasDressData = function(slot0, slot1)
+	return slot0.hasDressData[slot1]
+end
+
+slot0.SetDressHasRead = function(slot0, slot1)
+	if not slot0.hasDressData[slot1] then
+		return
+	end
+
+	slot0.hasDressData[slot1].read = 1
+end
+
+slot0.CheckRedDotByDressType = function(slot0, slot1)
+	for slot5, slot6 in pairs(slot0.hasDressData) do
+		if slot6:getConfigTable().type == slot1 and slot6.read == 0 then
+			return true
+		end
+	end
+
+	return false
+end
+
+slot0.GetCurDressIdByShipId = function(slot0, slot1, slot2)
+	slot3 = slot0.shipWearDressData[slot1] or {}
+
+	for slot7, slot8 in ipairs(slot3) do
+		if slot8:getConfigTable().type == slot2 then
+			return slot8
+		end
+	end
+
+	return nil
+end
+
+slot0.DischargeDressOnShip = function(slot0, slot1, slot2)
+	slot3 = slot0.shipWearDressData[slot1] or {}
+	slot4 = -1
+
+	for slot8, slot9 in ipairs(slot3) do
+		if slot9.dress_id == slot2 then
+			slot4 = slot8
+		end
+	end
+
+	if slot4 ~= -1 then
+		table.remove(slot3, slot4)
+	end
+
+	slot0.shipWearDressData[slot1] = slot3
+end
+
+slot0.ChargeDressOnShip = function(slot0, slot1, slot2)
+	slot3 = slot0.shipWearDressData[slot1] or {}
+
+	table.insert(slot3, IslandShipDressItem.New({
+		ship_id = slot1,
+		dress_id = slot2
+	}))
+
+	slot0.shipWearDressData[slot1] = slot3
+end
+
+slot0.GetShipHoldedDressDic = function(slot0)
+	return slot0.shipWearDressData
+end
+
+slot0.ResetShipSkillUsed = function(slot0)
+	for slot4, slot5 in pairs(slot0.ships) do
+		slot5:GetSkill():UpdateUsedToday(false)
+	end
+end
+
+return slot0

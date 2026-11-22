@@ -1,0 +1,34 @@
+slot0 = class("GalleryLikeCommand", pm.SimpleCommand)
+
+slot0.execute = function(slot0, slot1)
+	slot2 = slot1:getBody()
+	slot5 = slot2.likeCBFunc
+	slot6 = getProxy(AppreciateProxy)
+	slot7 = pg.ConnectionMgr.GetInstance()
+
+	slot7:Send(17505, {
+		id = slot2.picID,
+		action = slot2.isAdd
+	}, 17506, function (slot0)
+		if slot0.result == 0 then
+			if uv0 == 0 then
+				uv1:addPicIDToLikeList(uv2)
+			elseif uv0 == 1 then
+				uv1:removePicIDFromLikeList(uv2)
+			end
+
+			if uv3 then
+				uv3()
+			end
+
+			uv4:sendNotification(GAME.APPRECIATE_GALLERY_LIKE_DONE, {
+				picID = uv2,
+				action = uv0
+			})
+		else
+			pg.TipsMgr.GetInstance():ShowTips("Like Fail" .. tostring(slot0.result))
+		end
+	end)
+end
+
+return slot0

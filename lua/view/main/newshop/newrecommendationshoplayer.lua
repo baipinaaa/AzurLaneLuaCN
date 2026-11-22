@@ -1,0 +1,510 @@
+slot0 = class("NewRecommendationShopLayer", import("...base.BaseUI"))
+slot0.ACT_REMASTER_BANNER_ID = -1
+slot1 = pg.shop_banner_template
+
+slot0.getUIName = function(slot0)
+	return "NewRecommendationShopUI"
+end
+
+slot0.getGroupName = function(slot0)
+	return "NewShopMainScene"
+end
+
+slot0.getResource = function(slot0)
+	slot1 = {
+		"ui/NewRecommendationShopUI"
+	}
+	slot2 = pg.TimeMgr.GetInstance()
+	slot3 = getProxy(ShopsProxy):getChargedList()
+	slot4 = getProxy(ShopsProxy):GetNormalList()
+	slot5 = getProxy(ShopsProxy):GetNormalGroupList()
+	slot6 = getProxy(PlayerProxy):getRawData()
+	slot7 = {
+		{},
+		{},
+		{}
+	}
+
+	for slot11, slot12 in ipairs(uv0.all) do
+		if slot2:inTime(uv0[slot12].time) and slot13.relation_param ~= "" then
+			slot15 = slot13.relation_param[2]
+			slot16 = nil
+
+			if slot13.relation_param[1] == 1 then
+				Goods.Create({
+					id = slot15
+				}, Goods.TYPE_CHARGE):updateBuyCount(ChargeConst.getBuyCount(slot3, slot15))
+			elseif slot14 == 2 then
+				slot16 = Goods.Create({
+					id = slot15
+				}, Goods.TYPE_GIFT_PACKAGE)
+
+				slot16:updateBuyCount(ChargeConst.getBuyCount(slot4, slot15))
+				slot16:updateGroupCount(ChargeConst.getGroupLimit(slot5, slot16:getConfig("group") or 0))
+			elseif slot14 == 3 then
+				slot16 = Goods.Create({
+					id = slot15
+				}, Goods.TYPE_SKIN)
+
+				slot16:updateBuyCount(ChargeConst.getBuyCount(slot4, slot15))
+				slot16:updateGroupCount(ChargeConst.getGroupLimit(slot5, slot16:getConfig("group") or 0))
+			end
+
+			slot7[slot14][slot15] = slot16
+		end
+	end
+
+	slot8 = {}
+	slot9 = {}
+	slot10 = pg.gameset.shop_banner_capacity.key_value
+	slot11 = Clone(uv0.get_id_list_by_name)
+	slot11.banner_big = underscore.filter(slot11.banner_big, function (slot0)
+		return ShopsProxy.SpecialBannerBlockCheck(uv0[slot0], uv1)
+	end)
+
+	for slot15, slot16 in pairs(slot11) do
+		slot20 = {
+			function (slot0)
+				return -uv0[slot0].order
+			end,
+			function (slot0)
+				return slot0
+			end
+		}
+
+		table.sort(slot16, CompareFuncs(slot20))
+
+		for slot20 = #slot16, 1, -1 do
+			if not slot2:inTime(uv0[slot16[slot20]].time) then
+				table.remove(slot16, slot20)
+			elseif slot21.relation_param ~= "" then
+				slot22 = slot21.relation_param[1]
+				slot24 = slot7[slot22][slot21.relation_param[2]]
+
+				if slot22 == 1 then
+					if not slot24 or not slot24:inTime() or not slot24:canPurchase() then
+						table.remove(slot16, slot20)
+					end
+				elseif (slot22 == 2 or slot22 == 3) and (not slot24 or not slot24:inTime() or not slot24:canPurchase() or slot24:IsGroupLimit()) then
+					table.remove(slot16, slot20)
+				end
+			end
+		end
+
+		if #slot16 > 1 then
+			table.remove(slot16, #slot16)
+		end
+
+		if slot10 < #slot16 then
+			for slot20 = #slot16, slot10 + 1, -1 do
+				table.remove(slot16, slot20)
+			end
+		end
+
+		for slot20, slot21 in ipairs(slot16) do
+			if noEmptyStr(uv0[slot21].pic) then
+				table.insert(slot8, slot22.pic)
+
+				if HXSet.isHx() then
+					table.insert(slot8, slot22.pic .. "_hx")
+				end
+			end
+
+			if noEmptyStr(slot22.pic_overlay) then
+				table.insert(slot8, slot22.pic_overlay)
+			end
+
+			if slot22.relation_param ~= "" then
+				slot23 = slot22.relation_param[1]
+				slot25 = slot7[slot23][slot22.relation_param[2]]
+
+				if slot23 == 1 and slot25 and noEmptyStr(slot25:getConfig("picture")) then
+					table.insert(slot9, ResPathSupport.CombinePath("chargeicon", slot26))
+				end
+			end
+		end
+	end
+
+	return ResPathSupport.UniqueLuaArr(ResPathSupport.MergeLuaArr(uv1.super.getResource(slot0), slot1, slot8, slot9))
+end
+
+slot0.init = function(slot0)
+	slot0.resources = slot0._tf:Find("adapt/top/resources")
+	slot0.banners = {
+		banner_big = BannerScrollRectDorm3dShop.New(slot0._tf:Find("panel/banner_big/banner/mask/content"), slot0._tf:Find("panel/banner_big/banner/dots")),
+		banner_middle = BannerScrollRectDorm3dShop.New(slot0._tf:Find("panel/banner_middle/banner/mask/content"), slot0._tf:Find("panel/banner_middle/banner/dots")),
+		banner_small1 = BannerScrollRectDorm3dShop.New(slot0._tf:Find("panel/banner_small1/banner/mask/content"), slot0._tf:Find("panel/banner_small1/banner/dots")),
+		banner_small2 = BannerScrollRectDorm3dShop.New(slot0._tf:Find("panel/banner_small2/banner/mask/content"), slot0._tf:Find("panel/banner_small2/banner/dots")),
+		banner_small3 = BannerScrollRectDorm3dShop.New(slot0._tf:Find("panel/banner_small3/banner/mask/content"), slot0._tf:Find("panel/banner_small3/banner/dots"))
+	}
+
+	setText(slot0._tf:Find("panel/banner_big/banner/mask/content/item/time/remainTime"), i18n("shop_new_during_time"))
+	setText(slot0._tf:Find("panel/banner_small2/banner/mask/content/item/monthCard/day"), i18n("shop_new_daily"))
+	setText(slot0._tf:Find("panel/banner_middle/banner/mask/content/item/detail/buy/Text"), i18n("shop_new_purchase"))
+	setText(slot0._tf:Find("panel/banner_small1/banner/mask/content/item/detail/buy/Text"), i18n("shop_new_purchase"))
+	setText(slot0._tf:Find("panel/banner_small2/banner/mask/content/item/detail/buy/Text"), i18n("shop_new_purchase"))
+	setText(slot0._tf:Find("panel/banner_small2/banner/mask/content/item/monthCard/buy/Text"), i18n("shop_new_purchase"))
+	setText(slot0._tf:Find("panel/banner_small3/banner/mask/content/item/detail/buy/Text"), i18n("shop_new_purchase"))
+end
+
+slot0.didEnter = function(slot0)
+	slot0:InitData()
+	slot0:ShowResUI()
+	slot0:SetPanel()
+	slot0:OverlayPanel(slot0._tf)
+end
+
+slot0.InitData = function(slot0)
+	slot0.shopsProxy = getProxy(ShopsProxy)
+	slot1 = slot0.shopsProxy:getChargedList()
+	slot2 = slot0.shopsProxy:GetNormalList()
+	slot3 = slot0.shopsProxy:GetNormalGroupList()
+	slot0.commodities = {
+		{},
+		{},
+		{}
+	}
+
+	for slot7, slot8 in ipairs(uv0.all) do
+		if pg.TimeMgr.GetInstance():inTime(uv0[slot8].time) and slot9.relation_param ~= "" then
+			slot11 = slot9.relation_param[2]
+			slot12 = nil
+
+			if slot9.relation_param[1] == 1 then
+				Goods.Create({
+					id = slot11
+				}, Goods.TYPE_CHARGE):updateBuyCount(ChargeConst.getBuyCount(slot1, slot11))
+			elseif slot10 == 2 then
+				slot12 = Goods.Create({
+					id = slot11
+				}, Goods.TYPE_GIFT_PACKAGE)
+
+				slot12:updateBuyCount(ChargeConst.getBuyCount(slot2, slot11))
+				slot12:updateGroupCount(ChargeConst.getGroupLimit(slot3, slot12:getConfig("group") or 0))
+			elseif slot10 == 3 then
+				slot12 = Goods.Create({
+					id = slot11
+				}, Goods.TYPE_SKIN)
+
+				slot12:updateBuyCount(ChargeConst.getBuyCount(slot2, slot11))
+				slot12:updateGroupCount(ChargeConst.getGroupLimit(slot3, slot12:getConfig("group") or 0))
+			end
+
+			slot0.commodities[slot10][slot11] = slot12
+		end
+	end
+
+	slot4 = pg.gameset.shop_banner_capacity.key_value
+	slot0.bnIds = Clone(uv0.get_id_list_by_name)
+	slot5 = getProxy(PlayerProxy):getRawData()
+	slot0.bnIds.banner_big = underscore.filter(slot0.bnIds.banner_big, function (slot0)
+		return ShopsProxy.SpecialBannerBlockCheck(uv0[slot0], uv1)
+	end)
+
+	if getProxy(ActivityRemasterProxy):ExistShopBanner() then
+		if not slot0.bnIds.banner_small3 then
+			slot0.bnIds.banner_small3 = {}
+		end
+
+		table.insert(slot0.bnIds.banner_small3, uv1.ACT_REMASTER_BANNER_ID)
+	end
+
+	for slot9, slot10 in pairs(slot0.bnIds) do
+		slot14 = {
+			function (slot0)
+				return -uv0:GetBannerConfig(slot0).order
+			end,
+			function (slot0)
+				return slot0
+			end
+		}
+
+		table.sort(slot10, CompareFuncs(slot14))
+
+		for slot14 = #slot10, 1, -1 do
+			if not pg.TimeMgr.GetInstance():inTime(slot0:GetBannerConfig(slot10[slot14]).time) then
+				table.remove(slot10, slot14)
+			elseif slot15.relation_param ~= "" then
+				slot16 = slot15.relation_param[1]
+				slot18 = slot0.commodities[slot16][slot15.relation_param[2]]
+
+				if slot16 == 1 then
+					if not slot18:inTime() or not slot18:canPurchase() then
+						table.remove(slot10, slot14)
+					end
+				elseif (slot16 == 2 or slot16 == 3) and (not slot18:inTime() or not slot18:canPurchase() or slot18:IsGroupLimit()) then
+					table.remove(slot10, slot14)
+				end
+			end
+		end
+
+		if #slot10 > 1 then
+			table.remove(slot10, #slot10)
+		end
+
+		if slot4 < #slot10 then
+			for slot14 = #slot10, slot4 + 1, -1 do
+				table.remove(slot10, slot14)
+			end
+		end
+	end
+end
+
+slot0.ShowResUI = function(slot0)
+	slot1 = getProxy(PlayerProxy)
+	slot2 = slot0.resources
+	slot2 = slot2:Find("gold/max")
+	slot0.goldMax = slot2:GetComponent(typeof(Text))
+	slot2 = slot0.resources
+	slot2 = slot2:Find("gold/Text")
+	slot0.goldValue = slot2:GetComponent(typeof(Text))
+	slot2 = slot0.resources
+	slot2 = slot2:Find("oil/max")
+	slot0.oilMax = slot2:GetComponent(typeof(Text))
+	slot2 = slot0.resources
+	slot2 = slot2:Find("oil/Text")
+	slot0.oilValue = slot2:GetComponent(typeof(Text))
+	slot2 = slot0.resources
+	slot2 = slot2:Find("gem/Text")
+	slot0.gemValue = slot2:GetComponent(typeof(Text))
+
+	PlayerResUI.StaticFlush(slot1:getRawData(), slot0.goldMax, slot0.goldValue, slot0.oilMax, slot0.oilValue, slot0.gemValue)
+
+	slot4 = slot0.resources
+
+	onButton(slot0, slot4:Find("gold"), function ()
+		pg.playerResUI:ClickGold()
+	end, SFX_PANEL)
+
+	slot4 = slot0.resources
+
+	onButton(slot0, slot4:Find("oil"), function ()
+		pg.playerResUI:ClickOil()
+	end, SFX_PANEL)
+
+	slot4 = slot0.resources
+
+	onButton(slot0, slot4:Find("gem"), function ()
+		pg.playerResUI:ClickGem()
+	end, SFX_PANEL)
+end
+
+slot0.GetBannerConfig = function(slot0, slot1)
+	if slot1 == uv0.ACT_REMASTER_BANNER_ID then
+		return getProxy(ActivityRemasterProxy):GetShopBanner()
+	end
+
+	assert(uv1[slot1], "no config >>>>>>>>>>>>>>>>>" .. slot1)
+
+	if uv1[slot1] then
+		return uv1[slot1]
+	end
+end
+
+slot0.SetPanel = function(slot0)
+	for slot4, slot5 in pairs(slot0.banners) do
+		for slot9, slot10 in ipairs(slot0.bnIds[slot4]) do
+			slot11 = slot0:GetBannerConfig(slot10)
+
+			GetImageSpriteFromAtlasAsync(slot11.pic, "", slot5:AddChild():Find("picture"))
+
+			slot13 = slot11.pic_overlay ~= ""
+
+			setActive(slot12:Find("picture/overlay"), slot13)
+
+			if slot13 then
+				GetImageSpriteFromAtlasAsync(slot11.pic_overlay, "", slot12:Find("picture/overlay"), true)
+			end
+
+			setActive(slot12:Find("detail"), slot11.relation_param ~= "")
+			setActive(slot12:Find("time"), slot11.time_lable == 1)
+
+			if slot4 == "banner_small2" then
+				setActive(slot12:Find("monthCard"), false)
+				setActive(slot12:Find("monthCardhave"), false)
+			end
+
+			if slot11.relation_param ~= "" then
+				slot16 = slot0.commodities[slot11.relation_param[1]][slot11.relation_param[2]]
+
+				if slot4 == "banner_small2" and slot14 == 1 and slot16:isMonthCard() then
+					setActive(slot12:Find("detail"), false)
+					setActive(slot12:Find("monthCard"), true)
+					setText(slot12:Find("monthCard/name"), slot16:getConfig("name_display"))
+					GetImageSpriteFromAtlasAsync("chargeicon/" .. slot16:getConfig("picture"), "", slot12:Find("monthCard/icon"))
+					setText(slot12:Find("monthCard/get"), i18n("shop_new_get_now", slot16:GetGemCnt()))
+
+					slot17 = slot16:GetDropList()
+
+					while #slot17 > 3 do
+						table.remove(slot17, #slot17)
+					end
+
+					slot18 = UIItemList.New(slot12:Find("monthCard/items"), slot12:Find("monthCard/items/item"))
+
+					slot18:make(function (slot0, slot1, slot2)
+						if slot0 == UIItemList.EventUpdate then
+							updateDrop(slot2:Find("mask/item"), uv0[slot1 + 1])
+						end
+					end)
+					slot18:align(#slot17)
+
+					slot20 = slot16:isFree()
+
+					setText(slot12:Find("monthCard/consume/icon_rmb"), GetMoneySymbol())
+					setActive(slot12:Find("monthCard/consume/icon_rmb"), slot14 == 1 and not (slot14 == 1 and slot16:getShowType() ~= ""))
+
+					if PLATFORM_CODE == PLATFORM_CHT and slot16:IsLocalPrice() then
+						setActive(slot12:Find("monthCard/consume/icon_rmb"), false)
+					end
+
+					setActive(slot12:Find("monthCard/consume/icon_gem"), slot14 ~= 1 and not slot20)
+					setActive(slot12:Find("monthCard/consume/Text"), not slot20 and not slot19)
+
+					if slot14 == 1 then
+						setText(slot12:Find("monthCard/consume/Text"), slot16:getConfig("money"))
+					elseif slot14 == 2 then
+						setText(slot12:Find("monthCard/consume/Text"), slot16:GetPrice())
+					end
+
+					setActive(slot12:Find("monthCard/consume/FreeText"), slot20)
+					setText(slot12:Find("monthCard/consume/FreeText"), i18n("shop_free_tag"))
+
+					slot23 = getProxy(PlayerProxy):getRawData():getCardById(VipCard.MONTH) and slot22:GetLeftDay() > (slot16:getConfig("limit_arg") or 0)
+
+					setActive(slot12:Find("monthCardhave"), slot23)
+
+					if slot23 then
+						setText(slot12:Find("monthCardhave/Text"), i18n("shop_new_remaining_time", slot22:GetLeftDay()))
+					end
+				else
+					if slot14 == 1 then
+						setText(slot12:Find("detail/name"), slot16:getConfig("name_display"))
+						GetImageSpriteFromAtlasAsync("chargeicon/" .. slot16:getConfig("picture"), "", slot12:Find("detail/icon"))
+					elseif slot14 == 2 then
+						setText(slot12:Find("detail/name"), slot16:GetName())
+						GetImageSpriteFromAtlasAsync(slot16:getDropInfo():getIcon(), "", slot12:Find("detail/icon"))
+					end
+
+					slot17 = slot16:GetDropList()
+
+					while #slot17 > 3 do
+						table.remove(slot17, #slot17)
+					end
+
+					slot18 = UIItemList.New(slot12:Find("detail/items"), slot12:Find("detail/items/item"))
+
+					slot18:make(function (slot0, slot1, slot2)
+						if slot0 == UIItemList.EventUpdate then
+							updateDrop(slot2:Find("mask/item"), uv0[slot1 + 1])
+						end
+					end)
+					slot18:align(#slot17)
+
+					slot20 = slot16:isFree()
+
+					setText(slot12:Find("detail/consume/icon_rmb"), GetMoneySymbol())
+					setActive(slot12:Find("detail/consume/icon_rmb"), slot14 == 1 and not (slot14 == 1 and slot16:getShowType() ~= ""))
+
+					if PLATFORM_CODE == PLATFORM_CHT and slot16:IsLocalPrice() then
+						setActive(slot12:Find("detail/consume/icon_rmb"), false)
+					end
+
+					setActive(slot12:Find("detail/consume/icon_gem"), slot14 ~= 1 and not slot20)
+					setActive(slot12:Find("detail/consume/Text"), not slot20 and not slot19)
+
+					if slot14 == 1 then
+						setText(slot12:Find("detail/consume/Text"), slot16:getConfig("money"))
+					elseif slot14 == 2 then
+						setText(slot12:Find("detail/consume/Text"), slot16:GetPrice())
+					end
+
+					setActive(slot12:Find("detail/consume/FreeText"), slot20)
+					setText(slot12:Find("detail/consume/FreeText"), i18n("shop_free_tag"))
+				end
+			end
+
+			if slot11.time_lable == 1 then
+				slot14 = slot11.time[2]
+				slot15 = pg.TimeMgr.GetInstance()
+				slot15 = slot15:Table2ServerTime({
+					year = slot14[1][1],
+					month = slot14[1][2],
+					day = slot14[1][3],
+					hour = slot14[2][1],
+					min = slot14[2][2],
+					sec = slot14[2][3]
+				})
+
+				slot0:StartTimer(function ()
+					slot1 = uv0 - pg.TimeMgr.GetInstance():GetServerTime()
+					slot2 = math.floor(slot1 / 86400)
+					slot3 = math.floor(slot1 % 86400 / 3600)
+					slot4 = math.floor(slot1 % 86400 % 3600 / 60)
+
+					if uv1 == "banner_big" then
+						setText(uv2:Find("time/text"), i18n("shop_countdown", slot2, slot3, slot4))
+					elseif slot2 > 0 then
+						setText(uv2:Find("time/text"), i18n("shop_new_during_day", slot2))
+					elseif slot3 > 0 then
+						setText(uv2:Find("time/text"), i18n("shop_new_during_hour", slot3))
+					else
+						setText(uv2:Find("time/text"), i18n("shop_new_during_minite", slot4))
+					end
+				end)
+			end
+
+			onButton(slot0, slot12, function ()
+				uv0:emit(NewRecommendationShopMediator.GO_SHOP, uv1.param[1], uv1.param[2])
+			end, SFX_PANEL)
+		end
+
+		slot5:SetUp()
+		setActive(slot0._tf:Find("panel/" .. slot4 .. "/banner/dots"), #slot0.bnIds[slot4] > 1)
+	end
+end
+
+slot0.StartTimer = function(slot0, slot1)
+	if not slot0.timers then
+		slot0.timers = {}
+	end
+
+	slot1()
+
+	slot2 = Timer.New(function ()
+		uv0()
+	end, 1, -1)
+
+	slot2:Start()
+	table.insert(slot0.timers, slot2)
+end
+
+slot0.RemoveAllTimer = function(slot0)
+	if slot0.timers then
+		for slot4, slot5 in ipairs(slot0.timers) do
+			slot5:Stop()
+
+			slot5 = nil
+		end
+
+		slot0.timers = nil
+	end
+end
+
+slot0.willExit = function(slot0)
+	slot0:RemoveAllTimer()
+
+	for slot4, slot5 in pairs(slot0.banners) do
+		slot5:Dispose()
+	end
+
+	slot0.banners = nil
+
+	slot0:UnOverlayPanel(slot0._tf)
+end
+
+slot0.onBackPressed = function(slot0)
+	pg.m02:sendNotification(NewShopMainScene.CLOSE_VIEW)
+end
+
+return slot0

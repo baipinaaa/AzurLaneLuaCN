@@ -1,0 +1,290 @@
+slot0 = class("IslandSeasonActivityPanel", import("view.base.BaseSubView"))
+
+slot0.getUIName = function(slot0)
+	return "IslandSeasonActivityPanel"
+end
+
+slot0.OnLoaded = function(slot0)
+end
+
+slot0.OnInit = function(slot0)
+	slot0.tabsList = UIItemList.New(slot0.rtTabsContent, slot0.rtTabsTpl)
+	slot1 = slot0.tabsList
+
+	slot1:make(function (slot0, slot1, slot2)
+		slot1 = slot1 + 1
+
+		if slot0 == UIItemList.EventUpdate then
+			slot2.name = uv0.activities[slot1] and slot3.id or 0
+
+			slot5 = function(slot0)
+				setActive(uv0:Find("red"), IslandSeasonRedDotHelper.TipActivity(slot0))
+			end
+
+			if slot3 then
+				slot6 = slot3:getIslandConfig("title_res_tag")
+
+				setText(slot2:Find("on/Text"), slot6)
+				setText(slot2:Find("off/Text"), slot6)
+				slot5(slot3)
+			else
+				setText(slot2:Find("on/Text"), i18n("island_no_activity"))
+				setText(slot2:Find("on/Text/en"), i18n("island_activity_decorative_word"))
+				setText(slot2:Find("off/Text"), i18n("island_no_activity"))
+			end
+
+			slot6 = uv0.pageDic[slot4]
+
+			onToggle(uv0, slot2, function (slot0)
+				if uv0 and slot0 then
+					uv1:selectActivity(uv2)
+					uv3(uv2)
+				end
+			end, SFX_PANEL)
+		end
+	end)
+
+	slot0.switchCount = 0
+end
+
+slot0.Show = function(slot0)
+	uv0.super.Show(slot0)
+	slot0:Flush()
+	IslandGuideChecker.CheckGuide("ISLAND_GUIDE_14")
+end
+
+slot0.Flush = function(slot0)
+	if not slot0:isShowing() then
+		return
+	end
+
+	if not slot0.activities then
+		slot0:setActivities(getProxy(ActivityProxy):getIslandPanelActivities())
+	end
+
+	if slot0.activity then
+		slot0.pageDic[slot0.activity.id]:ExecuteAction("ShowOrHide", true)
+	else
+		slot0:verifyTabs()
+	end
+end
+
+slot0.verifyTabs = function(slot0, slot1)
+	if #slot0.activities > 0 then
+		triggerToggle(slot0.rtTabsContent:GetChild((slot0:getActivityIndex(slot1) or 1) - 1), true)
+	end
+end
+
+slot0.getActivityIndex = function(slot0, slot1)
+	for slot5, slot6 in ipairs(slot0.activities) do
+		if slot6.id == slot1 then
+			return slot5
+		end
+	end
+
+	return nil
+end
+
+slot0.setActivities = function(slot0, slot1)
+	slot0.activities = slot1 or {}
+	slot0.shareData = slot0.shareData or ActivityShareData.New()
+	slot0.pageDic = slot0.pageDic or {}
+
+	for slot5, slot6 in ipairs(slot1) do
+		slot0:instanceActivityPage(slot6)
+	end
+
+	slot0.activity = nil
+
+	table.sort(slot0.activities, CompareFuncs({
+		function (slot0)
+			return -slot0:getIslandConfig("is_show")
+		end,
+		function (slot0)
+			return -slot0.id
+		end
+	}))
+	slot0:flushTabs()
+end
+
+slot0.OnTaskUpdate = function(slot0, slot1)
+	for slot5, slot6 in pairs(slot0.activities) do
+		if slot6:getConfig("type") == ActivityConst.ACTIVITY_TYPE_TASK_LIST and _.any(_.flatten(slot6:getIslandConfig("config_data")), function (slot0)
+			return slot0 == uv0
+		end) then
+			slot0:updateActivity(slot6)
+		end
+	end
+end
+
+slot0.updateActivity = function(slot0, slot1)
+	if ActivityConst.IslandPageIdLinks[slot1.id] then
+		for slot6, slot7 in ipairs(slot2) do
+			slot0:_updateActivity(getProxy(ActivityProxy):getActivityById(slot7))
+		end
+	else
+		slot0:_updateActivity(slot1)
+	end
+end
+
+slot0._updateActivity = function(slot0, slot1)
+	if slot1:isIslandShow() and not slot1:isEnd() then
+		slot0.activities[slot0:getActivityIndex(slot1.id) or #slot0.activities + 1] = slot1
+
+		table.sort(slot0.activities, CompareFuncs({
+			function (slot0)
+				return -slot0:getIslandConfig("is_show")
+			end,
+			function (slot0)
+				return -slot0.id
+			end
+		}))
+
+		if not slot0.pageDic[slot1.id] then
+			slot0:instanceActivityPage(slot1)
+		end
+
+		slot0:flushTabs()
+
+		if slot0:isShowing() and slot0.activity and slot0.activity.id == slot1.id then
+			slot0.activity = slot1
+
+			slot0.pageDic[slot1.id]:ActionInvoke("Flush", slot1)
+		end
+	end
+end
+
+slot0.removeActivity = function(slot0, slot1)
+	if slot0:getActivityIndex(slot1) then
+		table.remove(slot0.activities, slot2)
+		slot0.pageDic[slot1]:Destroy()
+
+		slot0.pageDic[slot1] = nil
+
+		slot0:flushTabs()
+
+		if slot0.activity and slot0.activity.id == slot1 then
+			slot0.activity = nil
+
+			slot0:verifyTabs()
+		end
+	end
+end
+
+slot0.getActClass = function(slot0, slot1)
+	return import("Mod.Island.View.page.activity." .. slot1)
+end
+
+slot0.instanceActivityPage = function(slot0, slot1)
+	if slot1:getIslandConfig("page_info").class_name and not slot0.pageDic[slot1.id] and not slot1:isEnd() then
+		if slot0:getActClass(slot2.class_name).New(slot0.rtPages, slot0.event, slot0.contextData):UseSecondPage(slot1) then
+			slot4:SetUIName(slot2.ui_name2)
+		else
+			slot4:SetUIName(slot2.ui_name)
+		end
+
+		slot4:SetShareData(slot0.shareData)
+
+		slot0.pageDic[slot1.id] = slot4
+	end
+end
+
+slot0.flushTabs = function(slot0)
+	setActive(slot0.rtPagesEmpty, #slot0.activities == 0)
+	slot0.tabsList:align(math.max(#slot0.activities, 1))
+end
+
+slot0.selectActivity = function(slot0, slot1)
+	if slot0.nextActivity == slot1 or not slot0.nextActivity and slot0.activity and slot1.id == slot0.activity.id then
+		return
+	end
+
+	IslandSeasonRedDotHelper.UpdateActEnterTip(slot1)
+	slot0:emit(IslandSeasonPage.UPDATE_REDDOT, IslandSeasonPage.PAGE_ACTIVITY)
+
+	slot2 = {}
+
+	if slot0.activity and not slot0.nextActivity then
+		slot0.switchCount = slot0.switchCount + 1
+
+		table.insert(slot2, function (slot0)
+			slot1 = uv0.pageDic[uv0.activity.id]
+
+			slot1:ActionInvoke("SwitchOut", function ()
+				uv0.switchCount = uv0.switchCount - 1
+
+				uv1()
+			end)
+		end)
+	end
+
+	if not slot0.activity or slot0.activity.id ~= slot1.id then
+		assert(slot0.pageDic[slot1.id], "找不到id:" .. slot1.id .. "的活动页，请检查")
+
+		slot0.switchCount = slot0.switchCount + 1
+
+		table.insert(slot2, function (slot0)
+			slot1 = uv0
+
+			slot1:Load()
+
+			slot1 = uv0
+
+			slot1:ActionInvoke("ShowOrHide", false)
+
+			slot1 = uv0
+
+			slot1:CallbackInvoke(function ()
+				uv0.switchCount = uv0.switchCount - 1
+
+				uv1()
+			end)
+		end)
+	end
+
+	slot0.nextActivity = slot1
+
+	parallelAsync(slot2, function ()
+		if uv0.switchCount > 0 then
+			return
+		end
+
+		if uv0.activity then
+			uv0.pageDic[uv0.activity.id]:ActionInvoke("ShowOrHide", false)
+		end
+
+		uv0.activity = uv0.nextActivity
+		uv0.contextData.id = uv0.nextActivity.id
+		uv0.nextActivity = nil
+		slot0 = uv0.pageDic[uv0.activity.id]
+
+		slot0:ActionInvoke("ShowOrHide", true)
+		slot0:ActionInvoke("Flush", uv0.activity)
+	end)
+end
+
+slot0.OnDestroy = function(slot0)
+	slot0.shareData = nil
+
+	for slot4, slot5 in pairs(slot0.pageDic) do
+		slot5:Destroy()
+	end
+
+	slot0.pageDic = nil
+	slot0.activities = nil
+	slot0.switchCount = nil
+end
+
+slot0.OnHide = function(slot0)
+	slot4 = slot0._parentTf
+
+	slot0:UnOverlayPanel(slot0._tf, slot4)
+
+	for slot4, slot5 in pairs(slot0.pageDic) do
+		if slot5 and slot5:isShowing() then
+			slot5:Hide()
+		end
+	end
+end
+
+return slot0

@@ -1,0 +1,125 @@
+slot0 = class("SupportShipPoolPage", import("...base.BaseSubView"))
+
+slot0.getResource = function(slot0)
+	slot1 = {}
+
+	if pg.gametip.honor_medal_support_tips_display.tip and noEmptyStr(slot2.bg) then
+		table.insert(slot1, slot2.bg)
+
+		if HXSet.isHx() then
+			table.insert(slot1, slot2.bg .. "_hx")
+		end
+	end
+
+	if slot0.contextData and slot0.contextData.falgShip or getProxy(BayProxy):getShipById(getProxy(PlayerProxy):getData().character) then
+		table.insertto(slot1, ResPathSupport.GetPaintingListByPaintingName(slot3:getPainting()))
+	end
+
+	if HXSet.isHx() and CUSTOM_HX then
+		table.insertto(slot1, pg.ship_skin_template[900284].painting)
+	end
+
+	return table.insertto(slot1, uv0.super.getResource(slot0))
+end
+
+slot0.getUIName = function(slot0)
+	return "SupportShipPoolPageUI"
+end
+
+slot0.OnLoaded = function(slot0)
+	slot0.medalCount = slot0._tf:Find("gallery/res_items/medal")
+	slot0.patingTF = slot0._tf:Find("painting")
+	slot0.bg = slot0._tf:Find("gallery/bg")
+	slot0.tipSTxt = slot0.bg:Find("type_intro/mask/title"):GetComponent("ScrollText")
+	slot0.shopBtn = slot0._tf:Find("gallery/shop_btn")
+	slot0.helpBtn = slot0._tf:Find("gallery/help_btn")
+	slot0.startBtn = slot0._tf:Find("gallery/start_btn")
+end
+
+slot0.OnInit = function(slot0)
+	onButton(slot0, slot0.shopBtn, function ()
+		uv0:emit(BuildShipMediator.ON_SUPPORT_SHOP)
+	end, SFX_PANEL)
+end
+
+slot0.Flush = function(slot0)
+	slot0:UpdateMedal()
+
+	slot1 = getProxy(BuildShipProxy)
+	slot2 = pg.gametip.honor_medal_support_tips_display.tip
+	slot4 = slot0._tf
+
+	setText(slot4:Find("gallery/prints/intro/text"), slot2.support_tip_consume)
+	setImageSprite(slot0.bg, GetSpriteFromAtlas(slot2.bg, ""))
+
+	slot4 = slot0.tipSTxt
+
+	slot4:SetText(slot2.support_tip_ship)
+
+	slot4 = slot0._tf
+	slot4 = slot4:Find("gallery/item_bg/medal")
+	slot7 = Drop.New({
+		type = DROP_TYPE_ITEM,
+		id = ITEM_ID_SILVER_HOOK
+	})
+
+	setText(slot4:Find("name"), slot7:getName())
+	setText(slot4:Find("count/Text"), slot1:getSupportShipCost())
+	slot0:UpdateBuildPoolPaiting()
+	onButton(slot0, slot0.helpBtn, function ()
+		uv0.contextData.helpWindow:ExecuteAction("Show", uv1, "support")
+	end, SFX_CANCEL)
+
+	slot5 = getProxy(BagProxy)
+
+	onButton(slot0, slot0.startBtn, function ()
+		uv2.contextData.msgbox:ExecuteAction("Show", {
+			buildType = "medal",
+			itemVO = Item.New({
+				id = ITEM_ID_SILVER_HOOK,
+				count = uv0:getItemCountById(ITEM_ID_SILVER_HOOK)
+			}),
+			cost = uv1,
+			max = MAX_BUILD_WORK_COUNT,
+			onConfirm = function (slot0)
+				uv0:emit(BuildShipMediator.ON_SUPPORT_EXCHANGE, slot0)
+			end
+		})
+	end, SFX_UI_BUILDING_STARTBUILDING)
+end
+
+slot0.UpdateMedal = function(slot0)
+	setText(slot0.medalCount:Find("Text"), getProxy(BagProxy):getItemCountById(ITEM_ID_SILVER_HOOK))
+end
+
+slot0.UpdateBuildPoolPaiting = function(slot0)
+	slot1 = slot0.contextData.falgShip:getPainting()
+
+	if HXSet.isHx() and CUSTOM_HX then
+		slot1 = pg.ship_skin_template[900284].painting
+	end
+
+	if slot0.painting ~= slot1 then
+		slot2 = pg.UIMgr.GetInstance()
+
+		slot2:LoadingOn()
+		setPaintingPrefabAsync(slot0.patingTF, slot1, "build", function ()
+			uv0.painting = uv1
+
+			pg.UIMgr.GetInstance():LoadingOff()
+		end)
+	end
+end
+
+slot0.ShowOrHide = function(slot0, slot1)
+	if slot1 then
+		slot0:Show()
+	else
+		slot0:Hide()
+	end
+end
+
+slot0.OnDestroy = function(slot0)
+end
+
+return slot0

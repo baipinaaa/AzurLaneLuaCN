@@ -1,0 +1,80 @@
+slot0 = class("SettingsOtherPage", import(".SettingsOptionPage"))
+
+slot0.OnClearExchangeCode = function(slot0)
+	if slot0:GetPanel(SettingsRedeemPanel) then
+		slot1:ClearExchangeCode()
+	end
+end
+
+slot0.OnSecondPwdStateChange = function(slot0)
+	if slot0:GetPanel(SettingsSecondPwLimitedOpPanle) then
+		slot1:UpdateBtnsState()
+	end
+end
+
+slot0.GetPanels = function(slot0)
+	slot1 = {
+		SettingsSecondPasswordPanle,
+		SettingsSecondPwLimitedOpPanle
+	}
+
+	if slot0:NeedRedeem() then
+		table.insert(slot1, 1, SettingsRedeemPanel)
+	end
+
+	if PLATFORM_CODE == PLATFORM_JP then
+		table.insert(slot1, 1, SettingsAccountJPPanle)
+	end
+
+	if PLATFORM_CODE == PLATFORM_US then
+		table.insert(slot1, 1, SettingsAccountUSPanle)
+	end
+
+	if PLATFORM_CODE == PLATFORM_CHT then
+		table.insert(slot1, 1, SettingsAccountTwPanle)
+
+		if CSharpVersion >= 50 then
+			table.insert(slot1, SettingsAccountCHTPanle)
+		end
+
+		table.insert(slot1, SettingsAgreementCHTPanle)
+	end
+
+	if PLATFORM_CODE == PLATFORM_CH then
+		table.insert(slot1, SettingsAgreementPanle)
+
+		if LuaHelper.GetCHPackageType() == 1 and CSharpVersion >= 50 and not LOCK_SDK_SERVIVE then
+			table.insert(slot1, SettingsServicePanle)
+		end
+
+		if slot2 == 1 or slot2 == 3 and pg.SdkMgr.GetInstance():IsHuaweiPackage() then
+			table.insert(slot1, SettingsAccountCHPanle)
+		end
+
+		if slot2 == 1 and OPEN_EXCEPTION_TEST then
+			table.insert(slot1, SettingsTestUploadExceptionPanle)
+		end
+	end
+
+	return slot1
+end
+
+slot0.NeedRedeem = function(slot0)
+	if PLATFORM == PLATFORM_IPHONEPLAYER then
+		return SettingsProxy.IsExchangeCodeActive()
+	else
+		return true
+	end
+end
+
+slot0.OnInitPanle = function(slot0)
+	if PlayerPrefs.GetInt("firstIntoOtherPanel", 0) == 0 then
+		slot0:ScrollToPanel(slot0:GetPanel(SettingsSecondPasswordPanle))
+		PlayerPrefs.DeleteKey("firstIntoOtherPanel")
+		PlayerPrefs.SetInt("firstIntoOtherPanel", 1)
+		PlayerPrefs.Save()
+		pg.EasyRedDotMgr.GetInstance():TriggerMarks("SETTING")
+	end
+end
+
+return slot0

@@ -1,0 +1,170 @@
+slot0 = class("SummerFeastNavigationAgent", require("view.main.NavalAcademyStudent"))
+
+slot0.Ctor = function(slot0, slot1, slot2)
+	slot0.onTransEdge = nil
+	slot0.needOneScale = slot2
+
+	uv0.super.Ctor(slot0, slot1)
+end
+
+slot0.init = function(slot0)
+end
+
+slot0.normalSpeed = 15
+slot0.normalScale = 0.5
+slot0.oneScale = 1
+
+slot0.SetOnTransEdge = function(slot0, slot1)
+	slot0.onTransEdge = slot1
+end
+
+slot0.setCurrentIndex = function(slot0, slot1)
+	if not slot1 then
+		return
+	end
+
+	slot0.currentPoint = slot0.pathFinder:getPoint(slot1)
+end
+
+slot0.SetPositionTable = function(slot0, slot1)
+	slot0.posTable = slot1
+end
+
+slot0.updateStudent = function(slot0, slot1)
+	if slot1 == nil or slot1 == "" then
+		setActive(slot0._go, false)
+
+		return
+	end
+
+	setActive(slot0._go, true)
+
+	if slot0.prefabName ~= slot1 then
+		if slot0.model then
+			slot0.model:Dispose()
+		end
+
+		slot0.prefab = slot1
+		slot0.currentPoint = slot0.currentPoint or slot0.pathFinder:getRandomPoint()
+		slot0.targetPoint = slot0.currentPoint
+		slot2 = slot0.currentPoint.id
+		slot0._tf.anchoredPosition = slot0.currentPoint
+
+		if slot0.onTransEdge then
+			slot0:onTransEdge(slot2, slot2)
+		end
+
+		slot0.model = SpineAnimChar.New()
+		slot4 = slot0.model
+
+		slot4:SetPaint(slot0.prefab)
+
+		slot4 = slot0.model
+
+		slot4:Load(true, function (slot0)
+			if uv0 ~= uv1.prefab then
+				slot0:Dispose()
+
+				return
+			end
+
+			uv1.model:SetLocalScale(Vector3(0.5, 0.5, 1))
+			uv1.model:SetLocalPosition(Vector3.zero)
+			uv1.model:SetParent(uv1._tf)
+			uv1:updateState(uv2.ShipState.Idle)
+		end)
+	end
+
+	slot0.prefabName = slot1
+end
+
+slot0.updateLogic = function(slot0)
+	slot0:clearLogic()
+
+	if slot0.state == uv0.ShipState.Walk then
+		slot4 = Vector2.Distance(slot0.currentPoint, slot0.targetPoint) / slot0.normalSpeed
+
+		if slot0.posTable[slot0.currentPoint.id] == slot0 then
+			slot0.posTable[slot0.currentPoint.id] = nil
+		end
+
+		slot5 = slot1.scale or uv0.normalScale
+
+		if slot0.needOneScale then
+			slot5 = slot0.oneScale
+		end
+
+		slot0._tf.localScale = slot5 * Vector2.one
+		slot6 = slot0.pathFinder
+		slot6 = slot6:getEdge(slot1, slot2)
+		slot7 = LeanTween.value(slot0._go, 0, 1, slot4)
+		slot7 = slot7:setOnUpdate(System.Action_float(function (slot0)
+			slot1 = nil
+			uv1._tf.anchoredPosition = (not uv0 or not uv0.bezier_control_point or uv2.GetBeziersPoints(uv3, uv4, uv1.pathFinder:getPoint(uv0.bezier_control_point), slot0)) and Vector2.Lerp(uv3, uv4, slot0)
+			slot2 = math.lerp(uv3.scale or uv2.normalScale, uv4.scale or uv2.normalScale, slot0) * Vector2.one
+			slot3 = uv3.x < uv4.x and 1 or -1
+
+			if uv3.id == uv4.id then
+				slot3 = math.random(0, 1) == 1 and 1 or -1
+			end
+
+			if uv3.fixedDirection then
+				slot3 = math.sign(uv3.fixedDirection)
+			end
+
+			if uv1.needOneScale then
+				slot2 = uv1.oneScale * Vector2.one
+			end
+
+			slot2.x = math.abs(slot2.x) * slot3
+			uv1._tf.localScale = slot2
+		end))
+
+		slot7:setOnComplete(System.Action(function ()
+			uv0.currentPoint = uv0.targetPoint
+			slot0 = uv0.currentPoint.id
+			slot1 = uv0.currentPoint.nexts
+			slot2 = slot1[math.random(1, #slot1)]
+
+			if uv0.onTransEdge and slot2 then
+				uv0.targetPoint = uv0.pathFinder:getPoint(slot2)
+
+				uv0:onTransEdge(slot0, slot2)
+			end
+
+			uv0:updateState(uv1.ShipState.Idle)
+		end))
+
+		return
+	end
+
+	if slot0.state == uv0.ShipState.Idle then
+		if slot0.posTable[slot0.currentPoint.id] == nil then
+			slot0.posTable[slot0.currentPoint.id] = slot0
+		else
+			slot0:updateState(uv0.ShipState.Walk)
+
+			return
+		end
+
+		if slot0.currentPoint.isBan then
+			slot0:updateState(uv0.ShipState.Walk)
+
+			return
+		end
+
+		slot0.idleTimer = Timer.New(function ()
+			uv0:updateState(uv1.ShipState.Walk)
+		end, math.random(10, 20), 1)
+
+		slot0.idleTimer:Start()
+	elseif slot0.state == uv0.ShipState.Touch then
+		slot0:onClickShip()
+	end
+end
+
+slot0.GetBeziersPoints = function(slot0, slot1, slot2, slot3)
+	return slot0:Clone():Mul((1 - slot3) * (1 - slot3)):Add(slot2:Clone():Mul(2 * slot3 * (1 - slot3))):Add(slot1:Clone():Mul(slot3 * slot3))
+end
+
+return slot0

@@ -1,0 +1,158 @@
+slot0 = class("MetaSkillDetailBoxLayer", import("...base.BaseUI"))
+
+slot0.getUIName = function(slot0)
+	return "MetaSkillDetailBoxUI"
+end
+
+slot0.getResource = function(slot0)
+	slot1 = {}
+
+	for slot7 = 1, #MetaCharacterConst.getTacticsSkillIDListByShipConfigID(getProxy(BayProxy):getShipById(slot0.contextData.metaShipID).configId) do
+		table.insert(slot1, "skillicon/" .. getSkillConfig(slot3[slot7]).icon)
+	end
+
+	table.insertto(slot1, uv0.super.getResource(slot0))
+
+	return slot1
+end
+
+slot0.init = function(slot0)
+	slot0:initUITextTips()
+	slot0:initData()
+	slot0:findUI()
+	slot0:addListener()
+end
+
+slot0.didEnter = function(slot0)
+	pg.UIMgr.GetInstance():BlurPanel(slot0._tf)
+	slot0:updateShipDetail()
+	slot0:updateSkillList()
+end
+
+slot0.willExit = function(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0._tf)
+end
+
+slot0.initUITextTips = function(slot0)
+	setText(slot0._tf:Find("Window/top/bg/infomation/title"), i18n("battle_end_subtitle2"))
+	setText(slot0._tf:Find("Window/MetaSkillDetailBox/ExpDetail/ExpTipText"), i18n("meta_skill_dailyexp"))
+	setText(slot0._tf:Find("Window/MetaSkillDetailBox/TipText"), i18n("meta_skill_learn"))
+end
+
+slot0.initData = function(slot0)
+	slot0.metaProxy = getProxy(MetaCharacterProxy)
+	slot0.metaShipID = slot0.contextData.metaShipID
+end
+
+slot0.findUI = function(slot0)
+	slot0.bg = slot0._tf:Find("BG")
+	slot0.window = slot0._tf:Find("Window")
+	slot0.closeBtn = slot0.window:Find("top/btnBack")
+	slot0.panel = slot0.window:Find("MetaSkillDetailBox")
+	slot0.skillTpl = slot0.panel:Find("SkillTpl")
+	slot0.expDetailTF = slot0.panel:Find("ExpDetail")
+	slot0.shipIcon = slot0.expDetailTF:Find("IconTpl/Icon")
+	slot0.shipNameText = slot0.expDetailTF:Find("NameMask/Name")
+	slot0.expProgressText = slot0.expDetailTF:Find("ExpProgressText")
+	slot0.skillContainer = slot0.panel:Find("ScrollView/Content")
+	slot0.skillUIItemList = UIItemList.New(slot0.skillContainer, slot0.skillTpl)
+end
+
+slot0.addListener = function(slot0)
+	onButton(slot0, slot0.bg, function ()
+		uv0:closeView()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.closeBtn, function ()
+		uv0:closeView()
+	end, SFX_PANEL)
+end
+
+slot0.updateSkillTF = function(slot0, slot1, slot2)
+	slot3 = slot1:Find("frame")
+	slot4 = slot1:Find("check_mark")
+	slot5 = slot3:Find("skillInfo")
+	slot6 = slot3:Find("mask")
+	slot7 = slot3:Find("Slider")
+	slot9 = slot5:Find("ExpProgressText")
+	slot12 = slot3:Find("Tag/learing")
+	slot13 = slot3:Find("Tag/unlockable")
+	slot16 = getSkillConfig(slot2)
+
+	setImageSprite(slot5:Find("icon"), LoadSprite("skillicon/" .. slot16.icon))
+	setText(slot5:Find("name_contain/name"), shortenString(getSkillName(slot16.id), 8))
+	setText(slot5:Find("name_contain/level_contain/Text"), getProxy(BayProxy):getShipById(slot0.metaShipID):getMetaSkillLevelBySkillID(slot2))
+
+	slot18 = slot2 == slot0.metaProxy:getMetaTacticsInfoByShipID(slot0.metaShipID).curSkillID
+	slot19 = slot15 > 0
+	slot20 = slot14:isSkillLevelMax(slot2)
+	slot21 = slot17:getSkillExp(slot2)
+
+	if not (pg.skill_data_template[slot2].max_level <= slot15) then
+		if slot19 then
+			slot25 = MetaCharacterConst.getMetaSkillTacticsConfig(slot2, slot15).need_exp
+
+			setText(slot9, slot21 .. "/" .. slot25)
+			setSlider(slot7, 0, slot25, slot21)
+			setActive(slot9, true)
+			setActive(slot7, true)
+		else
+			setActive(slot9, false)
+			setActive(slot7, false)
+		end
+	else
+		setText(slot9, slot21 .. "/Max")
+		setSlider(slot7, 0, 1, 1)
+		setActive(slot9, true)
+		setActive(slot7, true)
+	end
+
+	setActive(slot4, slot18 and not slot20)
+	setActive(slot12, slot18 and not slot20)
+	setActive(slot13, not slot19)
+	setActive(slot6, not slot19)
+	onToggle(slot0, slot1, function (slot0)
+		if slot0 then
+			if not uv0 then
+				pg.MsgboxMgr.GetInstance():ShowMsgBox({
+					hideYes = true,
+					hideNo = true,
+					type = MSGBOX_TYPE_META_SKILL_UNLOCK,
+					metaShipVO = uv1,
+					skillID = uv2
+				})
+			elseif not uv3 and not uv4 then
+				pg.MsgboxMgr.GetInstance():ShowMsgBox({
+					content = i18n("meta_switch_skill_box_title", getSkillName(uv2)),
+					onYes = function ()
+						pg.m02:sendNotification(GAME.TACTICS_META_SWITCH_SKILL, {
+							shipID = uv0.metaShipID,
+							skillID = uv1
+						})
+					end
+				})
+			elseif uv4 then
+				pg.TipsMgr.GetInstance():ShowTips(i18n("meta_skill_maxtip2"))
+			end
+		end
+	end, SFX_PANEL)
+end
+
+slot0.updateSkillList = function(slot0)
+	slot0.skillUIItemList:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			uv1:updateSkillTF(slot2, uv0[slot1 + 1])
+		end
+	end)
+	slot0.skillUIItemList:align(#MetaCharacterConst.getTacticsSkillIDListByShipConfigID(getProxy(BayProxy):getShipById(slot0.metaShipID).configId))
+end
+
+slot0.updateShipDetail = function(slot0)
+	slot1 = getProxy(BayProxy):getShipById(slot0.metaShipID)
+	slot2 = slot1:getPainting()
+
+	setImageSprite(slot0.shipIcon, LoadSprite("SquareIcon/" .. slot2, slot2))
+	setScrollText(slot0.shipNameText, slot1:getName())
+	setText(slot0.expProgressText, setColorStr(slot0.metaProxy:getMetaTacticsInfoByShipID(slot0.metaShipID).curDayExp, "#FFF152FF") .. "/" .. pg.gameset.meta_skill_exp_max.key_value)
+end
+
+return slot0

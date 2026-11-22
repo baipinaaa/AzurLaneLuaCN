@@ -1,0 +1,158 @@
+slot0 = {
+	CATEGORY_ACTIVITY = 1,
+	CATEGORY_MONTH = 2,
+	CATEGORY_SUPPLY = 3,
+	SHOP_TYPE = {
+		SUPPLY = "supply",
+		CHARGE = "charge",
+		SKIN = "skin"
+	},
+	SHOP_ID = {
+		GIFT = 2,
+		ACTIVITY = 7,
+		DIAMOND = 1,
+		ITEM = 3,
+		SUPPLY = 6,
+		PICK = 4,
+		MONTH = 5
+	}
+}
+ChargeScene.TYPE_DIAMOND = 1
+ChargeScene.TYPE_GIFT = 2
+ChargeScene.TYPE_ITEM = 3
+ChargeScene.TYPE_PICK = 4
+slot0.SHOP_LIST = {
+	[slot0.SHOP_TYPE.CHARGE] = {
+		[ChargeScene.TYPE_DIAMOND] = 1,
+		[ChargeScene.TYPE_GIFT] = 2,
+		[ChargeScene.TYPE_ITEM] = 3,
+		[ChargeScene.TYPE_PICK] = 4
+	},
+	[slot0.SHOP_TYPE.SUPPLY] = {
+		[slot0.CATEGORY_MONTH] = 5,
+		[slot0.CATEGORY_SUPPLY] = 6,
+		[slot0.CATEGORY_ACTIVITY] = 7
+	}
+}
+slot0.TYPE_ACTIVITY = 1
+slot0.TYPE_SHOP_STREET = 2
+slot0.TYPE_MILITARY_SHOP = 3
+slot0.TYPE_QUOTA = 4
+slot0.TYPE_SHAM_SHOP = 5
+slot0.TYPE_FRAGMENT = 6
+slot0.TYPE_GUILD = 7
+slot0.TYPE_MEDAL = 8
+slot0.TYPE_META = 9
+slot0.TYPE_MINI_GAME = 10
+slot0.SUPPLY_SHOP_LIST = {
+	[slot0.CATEGORY_MONTH] = {
+		slot0.TYPE_QUOTA,
+		slot0.TYPE_SHAM_SHOP,
+		slot0.TYPE_MEDAL,
+		slot0.TYPE_FRAGMENT
+	},
+	[slot0.CATEGORY_SUPPLY] = {
+		slot0.TYPE_SHOP_STREET,
+		slot0.TYPE_MILITARY_SHOP,
+		slot0.TYPE_GUILD,
+		slot0.TYPE_META,
+		slot0.TYPE_MINI_GAME
+	},
+	[slot0.CATEGORY_ACTIVITY] = {
+		slot0.TYPE_ACTIVITY
+	}
+}
+slot0.SHOP_NAME_LIST = {
+	activity = {
+		slot0.CATEGORY_ACTIVITY
+	},
+	shopstreet = {
+		slot0.CATEGORY_SUPPLY,
+		slot0.TYPE_SHOP_STREET
+	},
+	supplies = {
+		slot0.CATEGORY_SUPPLY,
+		slot0.TYPE_MILITARY_SHOP
+	},
+	guild = {
+		slot0.CATEGORY_SUPPLY,
+		slot0.TYPE_GUILD
+	},
+	meta = {
+		slot0.CATEGORY_SUPPLY,
+		slot0.TYPE_META
+	},
+	minigame = {
+		slot0.CATEGORY_SUPPLY,
+		slot0.TYPE_MINI_GAME
+	},
+	quota = {
+		slot0.CATEGORY_MONTH,
+		slot0.TYPE_QUOTA
+	},
+	sham = {
+		slot0.CATEGORY_MONTH,
+		slot0.TYPE_SHAM_SHOP
+	},
+	medal = {
+		slot0.CATEGORY_MONTH,
+		slot0.TYPE_MEDAL
+	},
+	fragment = {
+		slot0.CATEGORY_MONTH,
+		slot0.TYPE_FRAGMENT
+	}
+}
+slot0.TYPE2NAME = {
+	[slot0.TYPE_ACTIVITY] = "activity_shop_title",
+	[slot0.TYPE_SHOP_STREET] = "street_shop_title",
+	[slot0.TYPE_MILITARY_SHOP] = "military_shop_title",
+	[slot0.TYPE_QUOTA] = "quota_shop_title1",
+	[slot0.TYPE_SHAM_SHOP] = "sham_shop_title",
+	[slot0.TYPE_FRAGMENT] = "fragment_shop_title",
+	[slot0.TYPE_GUILD] = "guild_shop_title",
+	[slot0.TYPE_MEDAL] = "medal_shop_title",
+	[slot0.TYPE_META] = "meta_shop_title",
+	[slot0.TYPE_MINI_GAME] = "mini_game_shop_title"
+}
+slot0.NEW_SKIN_SHOP_ID = 1
+slot0.PERMANANT_SKIN_SHOP_ID = 2
+
+slot0.GetShopConfig = function(slot0)
+	if not pg.shop_template[slot0] then
+		return nil
+	end
+
+	return setmetatable({}, {
+		__index = function (slot0, slot1)
+			if slot1 == "time" then
+				if uv0[slot1] == "always" or uv0[slot1] == "stop" or #uv0.time_new == 0 then
+					slot0[slot1] = uv0[slot1]
+
+					return slot0[slot1]
+				end
+
+				for slot6, slot7 in ipairs({
+					uv0.time,
+					unpack(uv0.time_new)
+				}) do
+					if pg.TimeMgr.GetInstance():inTime(slot7) then
+						return slot7
+					end
+				end
+
+				return uv0.time
+			else
+				if uv0[slot1] == nil then
+					warning(slot1)
+				end
+
+				slot0[slot1] = uv0[slot1]
+
+				return uv0[slot1]
+			end
+		end
+	})
+end
+
+return slot0

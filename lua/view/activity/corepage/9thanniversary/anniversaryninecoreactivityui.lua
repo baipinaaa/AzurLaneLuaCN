@@ -1,0 +1,93 @@
+slot0 = class("AnniversaryNineCoreActivityUI", import("view.activity.CorePage.CoreAdaptActivityMainScene"))
+slot1 = "#a6beb7"
+slot2 = "#584E45"
+
+slot0.getUIName = function(slot0)
+	return "AnniversaryNineCoreActivityUI"
+end
+
+slot0.optionsPath = {
+	"adapt/TopPage/top/btn_home"
+}
+
+slot0.init = function(slot0, ...)
+	uv0.super.init(slot0, ...)
+
+	slot1 = slot0._tf
+	slot0.topPage = slot1:Find("adapt/TopPage")
+	slot2 = slot0._tf
+
+	setText(slot2:Find("adapt/TopPage/top/deco/Text"), i18n("HelenaCoreActivity_title"))
+
+	slot2 = slot0._tf
+
+	setText(slot2:Find("adapt/TopPage/top/deco/Text/Text_1"), i18n("HelenaCoreActivity_title2"))
+
+	slot1 = nil
+	slot2 = slot0.tabsList
+
+	slot2:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			if not underscore.detect(uv0.activities, function (slot0)
+				return tostring(slot0:getConfig("is_show")) == uv0.name
+			end) or slot3:isEnd() then
+				setActive(slot2, false)
+			elseif not uv0.pageDic[slot3.id] then
+				warning(string.format("without page in act:", slot3.id))
+			else
+				setText(slot2:Find("off/name"), uv0:GetButtonNameText(slot3))
+				setText(slot2:Find("on/name"), uv0:GetButtonNameText(slot3))
+
+				if uv0.pageDic[slot3.id] ~= nil then
+					slot5 = uv0.pageDic[slot3.id]
+					slot7 = slot5:IsShowReminder()
+
+					setActive(slot2:Find("tip"), slot3:readyToAchieve())
+					onToggle(uv0, slot2, function (slot0)
+						if slot0 then
+							uv0:selectActivity(uv1)
+
+							if uv2 ~= uv1.id then
+								uv0:OnClickBtn(uv3, uv1.id)
+							end
+
+							uv2 = uv1.id
+
+							if uv0:GetActivityClassName(uv1) == "AnniversaryNineHwahJahSkinPage" or slot1 == "AnniversaryNineEvertsenSkinPage" then
+								uv0:SetColorTab(uv4)
+							else
+								uv0:SetColorTab(uv5)
+							end
+						end
+					end, SFX_PANEL)
+				end
+			end
+		end
+	end)
+end
+
+slot0.SetColorTab = function(slot0, slot1)
+	for slot5 = 0, slot0.tabs.childCount - 1 do
+		if slot0.tabs:GetChild(slot5):Find("off/name") then
+			setTextColor(slot7, Color.NewHex(slot1))
+		end
+	end
+end
+
+slot0.GetActivityClassName = function(slot0, slot1)
+	if not slot1 then
+		return nil
+	end
+
+	if type(slot1:getConfig("page_info")) == "table" then
+		return slot2.class_name
+	end
+
+	return nil
+end
+
+slot0.GetButtonNameText = function(slot0, slot1)
+	return i18n(string.format(slot1:getConfig("title_res_tag")))
+end
+
+return slot0

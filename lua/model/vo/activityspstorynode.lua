@@ -1,0 +1,127 @@
+slot0 = class("ActivitySpStoryNode", import("model.vo.BaseVO"))
+
+slot0.bindConfigTable = function(slot0)
+	return pg.activity_sp_story
+end
+
+slot0.NODE_TYPE = {
+	BATTLE = 2,
+	UNRELEASED = 99,
+	STORY = 1,
+	OPTION_BRANCH = 3
+}
+
+slot0.GetType = function(slot0)
+	return slot0:getConfig("story_type")
+end
+
+slot0.GetStoryName = function(slot0)
+	return slot0:getConfig("story")
+end
+
+slot0.GetDisplayName = function(slot0)
+	return slot0:getConfig("name")
+end
+
+slot0.GetPreNodes = function(slot0)
+	if type(slot0:getConfig("pre_event")) ~= "table" then
+		return {}
+	end
+
+	return slot1
+end
+
+slot0.IsOptionNode = function(slot0)
+	_.each(slot0:GetUnlockConditions(), function (slot0)
+		if slot0[1] == uv0.CONDITION.PRE_OPTION then
+			uv1 = true
+		end
+	end)
+
+	return nil
+end
+
+slot0.GetPreEvent = function(slot0)
+	if _.detect(slot0:GetUnlockConditions(), function (slot0)
+		return slot0[1] == uv0.CONDITION.PRE_PASSED or slot0[1] == uv0.CONDITION.PRE_OPTION
+	end) and slot2[2] and slot2[2] > 0 then
+		return slot2[2]
+	end
+
+	return 0
+end
+
+slot0.CONDITION = {
+	TASK_FINISHED = 6,
+	PRE_PASSED = 4,
+	PT = 3,
+	PASSCHAPTER = 2,
+	PRE_OPTION = 5,
+	TIME = 1
+}
+
+slot0.GetUnlockConditions = function(slot0)
+	if type(slot0:getConfig("lock")) ~= "table" then
+		return {}
+	end
+
+	return slot1
+end
+
+slot0.GetUnlockDesc = function(slot0)
+	return slot0:getConfig("unlock_conditions")
+end
+
+slot0.GetCleanBG = function(slot0)
+	return slot0:getConfig("change_background")
+end
+
+slot0.GetCleanBGM = function(slot0)
+	return slot0:getConfig("change_bgm")
+end
+
+slot0.GetCleanAnimator = function(slot0)
+	if slot0:getConfig("change_prefab") == "" then
+		slot1 = nil
+	end
+
+	return slot1
+end
+
+slot0.IsRecrew = function(slot0)
+	if type(slot0:getConfig("label_key")) ~= "table" then
+		return nil
+	end
+
+	if not PlayerPrefs.HasKey(StoryStep.GetGlobalFlagKey(slot1.flagID) .. slot1.flagIndex) then
+		return false
+	end
+
+	return PlayerPrefs.GetInt(slot2) > 0
+end
+
+slot0.GetOptionBranchByStoryName = function(slot0, slot1)
+	slot3 = nil
+
+	for slot7, slot8 in pairs(pg.activity_sp_story) do
+		if slot8.story == slot0 then
+			slot3 = slot7
+		end
+	end
+
+	slot4 = nil
+
+	for slot8, slot9 in pairs(slot2) do
+		if slot9.lock then
+			_.each(slot9.lock, function (slot0)
+				if slot0[1] == uv0.CONDITION.PRE_OPTION and slot0[2] == uv1 and slot0[3] == uv2 then
+					uv3 = uv4
+				end
+			end)
+		end
+	end
+
+	return slot4
+end
+
+return slot0

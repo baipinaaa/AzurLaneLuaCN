@@ -1,0 +1,326 @@
+slot0 = class("NewBackYardShopLayer", import("...base.BaseUI"))
+slot1 = 1
+slot2 = 2
+slot3 = 3
+slot4 = 4
+slot5 = 5
+slot6 = 6
+slot7 = 7
+slot8 = {
+	"word_theme",
+	"word_wallpaper",
+	"word_floorpaper",
+	"word_furniture",
+	"word_shipskin",
+	"word_decorate",
+	"word_wall"
+}
+
+slot9 = function(slot0)
+	return i18n(uv0[slot0])
+end
+
+slot10 = function(slot0, slot1, slot2)
+	onButton(slot0, slot1, function ()
+		if not uv0() then
+			return
+		end
+
+		if uv1.btn then
+			uv2(uv1.btn, false)
+		end
+
+		uv2(uv3, true)
+
+		uv1.btn = uv3
+	end, SFX_PANEL)
+	(function (slot0, slot1)
+		setActive(slot0:Find("sel"), slot1)
+		setActive(slot0:Find("unsel"), not slot1)
+	end)(slot1, false)
+end
+
+slot0.forceGC = function(slot0)
+	return true
+end
+
+slot0.getUIName = function(slot0)
+	return "NewBackYardShopUI"
+end
+
+slot0.SetDorm = function(slot0, slot1)
+	slot0.dorm = slot1
+end
+
+slot0.SetPlayer = function(slot0, slot1)
+	slot0.player = slot1
+end
+
+slot0.PlayerUpdated = function(slot0, slot1)
+	slot0:SetPlayer(slot1)
+	slot0:UpdateRes()
+
+	if slot0.pageType then
+		slot0.pages[slot0.pageType]:ExecuteAction("PlayerUpdated", slot1)
+	end
+end
+
+slot0.DormUpdated = function(slot0, slot1)
+	slot0:SetDorm(slot1)
+
+	if slot0.pageType then
+		slot0.pages[slot0.pageType]:ExecuteAction("DormUpdated", slot1)
+	end
+end
+
+slot0.FurnituresUpdated = function(slot0, slot1)
+	if slot0.pageType then
+		slot0.pages[slot0.pageType]:ExecuteAction("FurnituresUpdated", slot1)
+	end
+end
+
+slot0.init = function(slot0)
+	slot0.pageContainer = slot0._tf:Find("pages")
+	slot0.adpter = slot0._tf:Find("adpter")
+	slot0.btnTpl = slot0._tf:Find("adpter/tag/list/tpl")
+	slot0.btnContainer = slot0._tf:Find("adpter/tag/list")
+	slot0.backBtn = slot0._tf:Find("adpter/top/fanhui")
+	slot0.goldTxt = slot0._tf:Find("adpter/top/res_gold/Text"):GetComponent(typeof(Text))
+	slot0.gemTxt = slot0._tf:Find("adpter/top/res_gem/Text"):GetComponent(typeof(Text))
+	slot0.goldAddBtn = slot0._tf:Find("adpter/top/res_gold/jiahao")
+	slot0.gemAddBtn = slot0._tf:Find("adpter/top/res_gem/jiahao")
+	slot1 = slot0._tf
+	slot0.help = slot1:Find("adpter/top/help")
+	slot0.themePage = BackYardThemePage.New(slot0.pageContainer, slot0.event, slot0.contextData)
+	slot0.furniturePage = BackYardFurniturePage.New(slot0.pageContainer, slot0.event, slot0.contextData)
+	slot0.contextData.filterPanel = BackYardShopFilterPanel.New(slot0._tf, slot0.event, slot0.contextData)
+	slot0.pages = {
+		[uv0] = slot0.themePage,
+		[uv1] = slot0.furniturePage,
+		[uv2] = slot0.furniturePage,
+		[uv3] = slot0.furniturePage,
+		[uv4] = slot0.furniturePage,
+		[uv5] = slot0.furniturePage,
+		[uv6] = slot0.furniturePage
+	}
+	slot0.contextData.furnitureMsgBox = BackYardFurnitureMsgBoxPage.New(slot0._tf, slot0.event)
+	slot0.contextData.themeMsgBox = BackYardThemeMsgBoxPage.New(slot0._tf, slot0.event)
+	slot0.contextData.themeAllMsgBox = BackYardThemeMsgBoxForAllPage.New(slot0._tf, slot0.event)
+end
+
+slot0.didEnter = function(slot0)
+	onButton(slot0, slot0.backBtn, function ()
+		if uv0.contextData.onDeattch then
+			uv0.contextData.onDeattch()
+		end
+
+		uv0:emit(uv1.ON_CLOSE)
+	end, SFX_CANCEL)
+	onButton(slot0, slot0.help, function ()
+		uv0:emit(uv1.ON_HOME)
+	end, SFX_PANEL)
+	onButton(slot0, slot0.goldAddBtn, function ()
+		uv0:emit(NewBackYardShopMediator.ON_CHARGE, PlayerConst.ResDormMoney)
+	end, SFX_PANEL)
+	onButton(slot0, slot0.gemAddBtn, function ()
+		uv0:emit(NewBackYardShopMediator.ON_CHARGE, PlayerConst.ResDiamond)
+	end, SFX_PANEL)
+	slot0:InitPageFooter()
+	slot0:UpdateRes()
+	triggerButton(slot0.btns[slot0.contextData.page or uv1])
+
+	if slot0.contextData.topLayer then
+		slot2 = GetOrAddComponent(slot0._tf, typeof(Canvas))
+		slot2.overrideSorting = true
+		slot2.sortingOrder = 900
+
+		GetOrAddComponent(slot0._tf, typeof(GraphicRaycaster))
+	end
+
+	getProxy(SettingsProxy):UpdateNewThemeValue()
+end
+
+slot0.UpdateRes = function(slot0)
+	slot0.goldTxt.text = slot0.player:getResource(PlayerConst.ResDormMoney)
+	slot0.gemTxt.text = slot0.player:getTotalGem()
+end
+
+slot11 = {
+	"0",
+	"1",
+	"4",
+	"2",
+	"8",
+	"3",
+	"6",
+	"7"
+}
+
+slot0.InitPageFooter = function(slot0)
+	slot0.btns = {}
+
+	for slot4, slot5 in ipairs(slot0.pages) do
+		slot6 = cloneTplTo(slot0.btnTpl, slot0.btnContainer)
+		slot7 = slot6:Find("unsel")
+		slot7 = slot7:GetComponent(typeof(Image))
+		slot7.sprite = GetSpriteFromAtlas("ui/NewBackYardShopUI_atlas", "text_tag" .. slot4 - 1)
+
+		slot7:SetNativeSize()
+
+		slot8 = slot6:Find("sel/Text")
+		slot8 = slot8:GetComponent(typeof(Image))
+		slot8.sprite = GetSpriteFromAtlas("ui/NewBackYardShopUI_atlas", "text_tag" .. slot4 - 1)
+
+		slot8:SetNativeSize()
+
+		slot10 = slot6:Find("sel/icon")
+		slot10 = slot10:GetComponent(typeof(Image))
+
+		LoadSpriteAtlasAsync("ui/CourtyardUI_atlas", "icon_" .. uv0[slot4], function (slot0)
+			if uv0.exited then
+				return
+			end
+
+			uv1.sprite = slot0
+		end)
+		uv1(slot0, slot6, function ()
+			if uv0.pageType == uv1 then
+				return
+			end
+
+			if uv0.pageType and not uv0.pages[uv0.pageType]:GetLoaded() then
+				return
+			end
+
+			if uv0.pageType and uv0.pages[uv0.pageType] ~= uv2 then
+				uv0.pages[uv0.pageType]:Hide()
+			end
+
+			slot0 = uv2
+
+			slot0:ExecuteAction("SetUp", uv1, uv0.dorm, uv0.player, function ()
+			end)
+
+			uv0.pageType = uv1
+
+			if uv1 == 5 then
+				getProxy(SettingsProxy):UpdateNewGemFurnitureValue()
+				uv0:UpdateSpecialPageFooter()
+			end
+
+			return true
+		end)
+
+		slot0.btns[slot4] = slot6
+	end
+
+	slot0:UpdateSpecialPageFooter()
+	setActive(slot0.btnTpl, false)
+end
+
+slot0.getResource = function(slot0)
+	slot2 = {}
+
+	for slot6, slot7 in ipairs(uv0.super.getResource(slot0)) do
+		slot2[slot7] = true
+	end
+
+	for slot7, slot8 in ipairs(pg.furniture_shop_template.all) do
+		if pg.TimeMgr.GetInstance():inTime(pg.furniture_shop_template[slot8].time) then
+			slot13 = "furnitrues/" .. pg.furniture_data_template[slot8].picture
+
+			if "furnitureicon/" .. pg.furniture_data_template[slot8].icon ~= "furnitureicon/" and not slot2[slot14] then
+				slot2[slot14] = true
+
+				table.insert(slot1, slot14)
+			end
+
+			slot15 = pg.furniture_data_template[slot8].type
+			slot16 = pg.furniture_data_template[slot8].tag
+			slot17 = pg.furniture_data_template[slot8].spine
+
+			if slot13 == "furnitrues/" then
+				-- Nothing
+			elseif slot15 == 1 and slot16 == 3 then
+				for slot21 = 1, 4 do
+					if not slot2[slot13 .. slot21] then
+						slot2[slot13 .. slot21] = true
+
+						table.insert(slot1, slot13 .. slot21)
+					end
+				end
+			elseif slot17 and slot17 ~= "" then
+				slot18, slot19 = nil
+
+				if slot17[1] and #slot17[1] > 0 and type(slot17[1][1]) == "string" then
+					slot18 = "sfurniture/" .. slot17[1][1]
+				end
+
+				if slot17[2] and #slot17[2] > 0 and type(slot17[2][1]) == "string" then
+					slot19 = "sfurniture/" .. slot17[2][1]
+				end
+
+				if slot18 and not slot2[slot18] then
+					slot2[slot18] = true
+
+					table.insert(slot1, slot18)
+				end
+
+				if slot19 and not slot2[slot19] then
+					slot2[slot19] = true
+
+					table.insert(slot1, slot19)
+				end
+			elseif not slot2[slot13] then
+				slot2[slot13] = true
+
+				table.insert(slot1, slot13)
+			end
+		end
+	end
+
+	for slot8, slot9 in ipairs(getProxy(DormProxy):GetSystemThemes()) do
+		if slot9:getConfig("is_view") == 1 and not slot9:IsOverTime() then
+			if not slot2["furnitureicon/" .. pg.backyard_theme_template[slot9.id].icon] then
+				slot2[slot13] = true
+
+				table.insert(slot1, slot13)
+			end
+
+			if not slot2["backyardtheme/theme_" .. slot10] then
+				slot2[slot14] = true
+
+				table.insert(slot1, slot14)
+			end
+
+			if not slot2["backyardtheme/" .. slot10] then
+				slot2[slot15] = true
+
+				table.insert(slot1, slot15)
+			end
+		end
+	end
+
+	return slot1
+end
+
+slot0.UpdateSpecialPageFooter = function(slot0)
+	setActive(slot0.btns[5]:Find("new"), getProxy(SettingsProxy):IsTipNewGemFurniture())
+end
+
+slot0.willExit = function(slot0)
+	slot0.isOverlay = false
+
+	slot0.contextData.filterPanel:Destroy()
+	slot0.themePage:Destroy()
+	slot0.furniturePage:Destroy()
+	slot0.contextData.furnitureMsgBox:Destroy()
+
+	slot0.contextData.furnitureMsgBox = nil
+
+	slot0.contextData.themeMsgBox:Destroy()
+
+	slot0.contextData.themeMsgBox = nil
+end
+
+return slot0

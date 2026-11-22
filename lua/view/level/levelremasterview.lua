@@ -1,0 +1,392 @@
+slot0 = class("LevelRemasterView", import("..base.BaseSubView"))
+
+slot0.getUIName = function(slot0)
+	return "LevelRemasterView"
+end
+
+slot0.getResource = function(slot0)
+	slot2 = function(slot0, slot1)
+		if noEmptyStr(Drop.New({
+			type = slot0,
+			id = slot1
+		}):getIcon()) then
+			table.insert(uv0, slot3)
+		end
+	end
+
+	slot3 = function(slot0, slot1)
+		if slot0 ~= DROP_TYPE_SHIP then
+			return
+		end
+
+		table.insertto(uv0, ResPathSupport.GetPaintingSquareIconListByPaintingName(Ship.getPaintingName(slot1)))
+	end
+
+	slot4 = function(slot0)
+		if slot0 == nil then
+			return
+		end
+
+		table.insert(uv0, ResPathSupport.ConstPath.LevelMap .. "/" .. slot0)
+	end
+
+	slot5 = function(slot0)
+		if slot0 == nil then
+			return
+		end
+
+		table.insert(uv0, "ui/" .. slot0)
+	end
+
+	_.each(pg.re_map_template.all, function (slot0)
+		if pg.re_map_template[slot0] and noEmptyStr(slot1.bg) then
+			table.insert(uv0, ResPathSupport.CombinePath(ResPathSupport.ConstPath.UI.ActivityBanner, slot1.bg))
+
+			if HXSet.isHx() then
+				table.insert(uv0, slot2 .. "_hx")
+			end
+		end
+
+		_.each(slot1.drop_gain or {}, function (slot0)
+			if #slot0 > 0 then
+				uv0(slot0[2], slot0[3])
+				uv1(slot0[2], slot0[3])
+			end
+		end)
+		_.each(slot1.drop_display or {}, function (slot0)
+			if slot0[1] then
+				uv0(slot0[1][1], slot0[1][2])
+				uv1(slot0[1][1], slot0[1][2])
+			end
+		end)
+		_.each(slot1.drop_display_sp or {}, function (slot0)
+			if slot0[1] then
+				uv0(slot0[1][1], slot0[1][2])
+				uv1(slot0[1][1], slot0[1][2])
+			end
+		end)
+		_.each(slot1.config_data, function (slot0)
+			if pg.chapter_template[slot0] and pg.expedition_data_by_map[slot1.map] then
+				uv0(slot2.bg)
+				uv1(slot2.ani_name)
+			end
+		end)
+	end)
+
+	return ResPathSupport.UniqueLuaArr(table.insertto({}, uv0.super.getResource(slot0)))
+end
+
+slot0.OnInit = function(slot0)
+	slot1 = slot0._tf
+	slot0.content = slot1:Find("list/content")
+	slot1 = slot0.content
+	slot0.item = slot1:Find("item")
+	slot1 = slot0._tf
+	slot0.numsTxt = slot1:Find("nums/text")
+	slot1 = slot0._tf
+	slot0.helpBtn = slot1:Find("help")
+
+	setActive(slot0.item, false)
+
+	slot1 = slot0._tf
+	slot0.getRemasterTF = slot1:Find("getBtn/state_before")
+	slot1 = slot0._tf
+	slot0.gotRemasterTF = slot1:Find("getBtn/state_after")
+	slot1 = slot0._tf
+	slot0.exToggle = slot1:Find("toggles/EX")
+	slot1 = slot0._tf
+	slot0.spToggle = slot1:Find("toggles/SP")
+
+	slot0:bind(LevelUIConst.FLUSH_REMASTER_INFO, function (slot0)
+		if not uv0:isShowing() then
+			return
+		end
+
+		uv0:flushOnly()
+	end)
+	slot0:bind(LevelUIConst.FLUSH_REMASTER_TICKET, function (slot0)
+		if not uv0:isShowing() then
+			return
+		end
+
+		uv0:updateTicketDisplay()
+	end)
+
+	slot1 = getProxy(ChapterProxy)
+	slot2 = pg.TimeMgr.GetInstance()
+	slot0.itemList = UIItemList.New(slot0.content, slot0.item)
+	slot3 = slot0.itemList
+
+	slot3:make(function (slot0, slot1, slot2)
+		slot1 = slot1 + 1
+
+		if slot0 == UIItemList.EventUpdate then
+			setActive(slot2:Find("right"), slot1 % 2 > 0)
+			setActive(slot2:Find("bg/icon"), false)
+			setActive(slot2:Find("bg/lock"), false)
+			setActive(slot2:Find("bg/wait"), false)
+			setActive(slot2:Find("bg/tip"), false)
+
+			if not uv0.temp[slot1] then
+				setActive(slot6, true)
+				onButton(uv0, slot6, function ()
+					pg.TipsMgr.GetInstance():ShowTips(i18n("levelScene_remaster_do_not_open"))
+				end, SFX_PANEL)
+			elseif not uv1:inTime(slot3.time) then
+				setActive(slot5, true)
+				onButton(uv0, slot5, function ()
+					pg.TipsMgr.GetInstance():ShowTips(i18n("levelScene_remaster_do_not_open"))
+				end, SFX_PANEL)
+			else
+				setActive(slot4, true)
+				GetImageSpriteFromAtlasAsync("activitybanner/" .. slot3.bg, "", slot4)
+				setText(slot4:Find("info"):Find("dec1/index"), slot1 < 10 and "0" .. slot1 or slot1)
+				setText(slot8:Find("progress/Text"), BossRushChapterRemasterHelper.GetProgress(slot3.id) .. "%")
+				onButton(uv0, slot4, function ()
+					if BossRushChapterRemasterHelper.IsRemasterByActivity(uv0.id) then
+						uv1:HandleActTypeRemaster(uv0)
+
+						return
+					end
+
+					if (function ()
+						slot0 = pg.chapter_template[uv0.config_data[1]].map
+						slot4 = "remaster_lastmap_" .. uv0.id
+						slot5 = slot0
+
+						for slot4, slot5 in ipairs({
+							PlayerPrefs.GetInt(slot4, slot5),
+							slot0
+						}) do
+							if uv1:getMapById(slot5):isUnlock() then
+								return slot5
+							end
+						end
+					end)() then
+						uv1.onSelectMap(slot0)
+						uv1:Hide()
+					end
+				end, SFX_PANEL)
+
+				slot11 = underscore.to_array(slot3.drop_display)
+
+				if BossRushChapterRemasterHelper.ChapterAwardInfo(slot3.id) then
+					table.insert(slot11, 1, slot10)
+				elseif #slot3.drop_display_sp > 0 then
+					slot11 = table.mergeArray(slot3.drop_display_sp, slot11)
+				end
+
+				eachChild(slot8:Find("content"), function (slot0)
+					setActive(slot0, false)
+				end)
+
+				for slot16, slot17 in ipairs(slot11) do
+					setActive(slot12.childCount < slot16 and cloneTplTo(slot12:GetChild(0), slot12) or slot12:GetChild(slot16 - 1), true)
+
+					if slot10 and slot16 == 1 then
+						slot20, slot21, slot22, slot23, slot24 = unpack(slot10[2])
+
+						setActive(slot7, slot23 <= uv2:getRemasterInfo(slot10[3], slot20, slot10[1]).count)
+						setActive(slot18:Find("mark"), slot25.count < slot23)
+						setActive(slot18:Find("Slider"), slot25.count < slot23)
+						setActive(slot18:Find("achieve"), slot23 <= slot25.count)
+						setSlider(slot18:Find("Slider"), 0, slot23, slot25.count)
+						updateDrop(slot18:Find("IconTpl"), {
+							type = slot21,
+							id = slot22
+						})
+						onButton(uv0, slot18:Find("IconTpl"), function ()
+							pg.MsgboxMgr.GetInstance():ShowMsgBox({
+								hideYes = true,
+								hideNo = true,
+								type = MSGBOX_TYPE_SINGLE_ITEM,
+								drop = uv2,
+								remaster = {
+									word = i18n("level_remaster_tip4", BossRushChapterRemasterHelper.GetAwardName(uv0, uv1)),
+									number = uv3.count .. "/" .. uv4,
+									btn_text = i18n(uv3.count < uv4 and "level_remaster_tip2" or "level_remaster_tip3"),
+									btn_call = function ()
+										if uv0.count < uv1 then
+											if uv2 and uv2 > 0 then
+												uv3:emit(LevelMediator2.ON_BOSSRUSH_REMASTER_ACTIVITY, uv2)
+												uv3:Hide()
+
+												return
+											end
+
+											slot1, slot2 = uv5:getMapById(pg.chapter_template[uv4].map):isUnlock()
+
+											if not slot1 then
+												pg.TipsMgr.GetInstance():ShowTips(slot2)
+											else
+												uv3.onSelectMap(slot0)
+												uv3:Hide()
+											end
+										else
+											uv3:emit(LevelMediator2.ON_CHAPTER_REMASTER_AWARD, uv4, uv6, uv2)
+										end
+									end
+								}
+							})
+						end, SFX_PANEL)
+					else
+						updateDrop(slot18:Find("IconTpl"), {
+							type = slot17[1][1],
+							id = slot17[1][2]
+						})
+						onButton(uv0, slot18:Find("IconTpl"), function ()
+							pg.MsgboxMgr.GetInstance():ShowMsgBox({
+								hideYes = true,
+								hideNo = true,
+								type = MSGBOX_TYPE_SINGLE_ITEM,
+								drop = uv0,
+								remaster = {
+									word = i18n("level_remaster_tip1") .. uv1[2],
+									btn_text = i18n("text_confirm")
+								}
+							})
+						end, SFX_PANEL)
+						setActive(slot18:Find("mark"), false)
+						setActive(slot18:Find("Slider"), false)
+						setActive(slot18:Find("achieve"), false)
+					end
+				end
+			end
+		end
+	end)
+	onButton(slot0, slot0.getRemasterTF, function ()
+		if pg.gameset.reactivity_ticket_max.key_value < uv0.remasterTickets + pg.gameset.reactivity_ticket_daily.key_value then
+			pg.MsgboxMgr.GetInstance():ShowMsgBox({
+				content = i18n("tack_tickets_max_warning", math.max(pg.gameset.reactivity_ticket_max.key_value - uv0.remasterTickets, 0)),
+				onYes = function ()
+					uv0:emit(LevelMediator2.ON_CLICK_RECEIVE_REMASTER_TICKETS_BTN)
+				end
+			})
+
+			return
+		end
+
+		uv1:emit(LevelMediator2.ON_CLICK_RECEIVE_REMASTER_TICKETS_BTN)
+	end, SFX_PANEL)
+end
+
+slot0.HandleActTypeRemaster = function(slot0, slot1)
+	slot6 = function()
+		uv0:emit(LevelMediator2.ON_BOSSRUSH_REMASTER_ACTIVITY, uv1)
+	end
+
+	slot7 = function()
+		seriesAsync({
+			function (slot0)
+				slot1 = BossRushChapterRemasterHelper.GetRemasterByActivityId(uv0)
+
+				assert(slot1, "oldTempplate is nil, activityId: " .. uv0)
+				uv1:emit(LevelMediator2.RECORD_ACTIVITY_PERMANENT_PROGRESS, slot1.id, slot0)
+			end
+		}, uv2)
+	end
+
+	if getProxy(ActivityPermanentProxy):GetActivityTypeById(slot1.activity_id) and slot3:getDoingActivityId(slot4) and slot5 ~= slot2 then
+		pg.MsgboxMgr.GetInstance():ShowMsgBox({
+			content = i18n("bossrush_act_remaster_close_prev_one_tip"),
+			onYes = slot7
+		})
+
+		return
+	end
+
+	slot6()
+end
+
+slot0.OnDestroy = function(slot0)
+	slot0.onItem = nil
+
+	if slot0:isShowing() then
+		slot0:Hide()
+	end
+end
+
+slot0.Show = function(slot0)
+	uv0.super.Show(slot0)
+	pg.UIMgr.GetInstance():BlurPanel(slot0._tf)
+end
+
+slot0.Hide = function(slot0)
+	uv0.super.Hide(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0._tf, slot0._parentTf)
+end
+
+slot0.set = function(slot0, slot1, slot2)
+	slot0.templates = {}
+
+	for slot6, slot7 in ipairs(pg.re_map_template.all) do
+		table.insert(slot0.templates, pg.re_map_template[slot7])
+	end
+
+	slot0.onSelectMap = slot1
+
+	slot0:flush(slot2)
+end
+
+slot0.flush = function(slot0, slot1)
+	onButton(slot0, slot0._tf:Find("bg"), function ()
+		uv0:Hide()
+	end, SFX_CANCEL)
+	onButton(slot0, slot0.helpBtn, function ()
+		pg.MsgboxMgr.GetInstance():ShowMsgBox({
+			type = MSGBOX_TYPE_HELP,
+			helps = i18n("levelScene_remaster_help_tip")
+		})
+	end, SFX_PANEL)
+	slot0:updateTicketDisplay()
+
+	slot3 = getProxy(ChapterProxy)
+
+	for slot7, slot8 in ipairs({
+		slot0.exToggle,
+		slot0.spToggle
+	}) do
+		onToggle(slot0, slot8, function (slot0)
+			if slot0 then
+				uv0.temp = underscore.filter(uv0.templates, function (slot0)
+					return BossRushChapterRemasterHelper.GetExOrSp4Filter(slot0.activity_type) == uv0
+				end)
+				slot1 = {}
+
+				for slot5, slot6 in ipairs(uv0.temp) do
+					slot1[slot6.id] = BossRushChapterRemasterHelper.ExistCanGetAward(slot6.id) and 0 or 1
+				end
+
+				table.sort(uv0.temp, CompareFuncs({
+					function (slot0)
+						return uv0[slot0.id] or 1
+					end,
+					function (slot0)
+						return slot0.order
+					end
+				}))
+				uv0.itemList:align(math.max(math.ceil(#uv0.temp / 2) * 2, 4))
+			end
+		end, SFX_PANEL)
+	end
+
+	triggerToggle(slot2[slot1 and 2 or 1], true)
+end
+
+slot0.MatchType = function(slot0, slot1, slot2)
+	return slot1 == slot2
+end
+
+slot0.flushOnly = function(slot0)
+	slot0.itemList:align(math.max(math.ceil(#slot0.temp / 2) * 2, 4))
+end
+
+slot0.updateTicketDisplay = function(slot0)
+	slot2 = getProxy(ChapterProxy).remasterDailyCount > 0
+
+	SetActive(slot0.getRemasterTF, not slot2)
+	SetActive(slot0.gotRemasterTF, slot2)
+	setText(slot0.numsTxt, slot1.remasterTickets .. "/" .. pg.gameset.reactivity_ticket_max.key_value)
+end
+
+return slot0

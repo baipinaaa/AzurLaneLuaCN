@@ -1,0 +1,14 @@
+slot0 = class("IDOLMMainPage", import(".TemplatePage.PreviewTemplatePage"))
+
+slot0.OnFirstFlush = function(slot0)
+	uv0.super.OnFirstFlush(slot0)
+
+	slot1 = slot0.btnList
+	slot0.mountainBtn = slot1:Find("mountain")
+
+	onButton(slot0, slot0.mountainBtn, function ()
+		pg.m02:sendNotification(GAME.GO_SCENE, SCENE.IMAS_STAGE)
+	end, SFX_PANEL)
+end
+
+return slot0

@@ -1,0 +1,60 @@
+slot0 = class("SetIslandNameCommand", pm.SimpleCommand)
+
+slot0.execute = function(slot0, slot1)
+	slot2 = slot1:getBody()
+	slot3 = slot2.name
+	slot4 = slot2.currency
+
+	if not getProxy(IslandProxy):GetIsland():CanModifyName() then
+		return
+	end
+
+	if not nameValidityCheck(slot3, 1, 18, {
+		"island_name_exist_special_word",
+		"island_name_too_long_or_too_short",
+		"island_name_too_long_or_too_short",
+		"island_name_exist_ban_word"
+	}) then
+		return
+	end
+
+	if slot4 == 2 then
+		pg.MsgboxMgr.GetInstance():ShowMsgBox({
+			content = i18n("island_rename_tip"),
+			onYes = function ()
+				uv0:Send(uv1, uv2)
+			end
+		})
+	else
+		pg.MsgboxMgr.GetInstance():ShowMsgBox({
+			content = i18n("island_rename_confirm", slot3),
+			onYes = function ()
+				uv0:Send(uv1, uv2)
+			end
+		})
+	end
+end
+
+slot0.Send = function(slot0, slot1, slot2)
+	slot3 = pg.ConnectionMgr.GetInstance()
+
+	slot3:Send(21004, {
+		name = slot1,
+		type = slot2
+	}, 21005, function (slot0)
+		if slot0.ret == 0 then
+			if not getProxy(IslandProxy):GetIsland():IsNew() then
+				-- Nothing
+			end
+
+			slot1:SetName(uv0)
+			uv1:sendNotification(GAME.ISLAND_SET_NAME_DONE, {
+				name = uv0
+			})
+		else
+			pg.TipsMgr.GetInstance():ShowTips(ERROR_MESSAGE[slot0.ret] .. slot0.ret)
+		end
+	end)
+end
+
+return slot0

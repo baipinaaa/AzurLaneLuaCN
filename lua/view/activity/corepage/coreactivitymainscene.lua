@@ -1,0 +1,314 @@
+slot0 = class("CoreActivityMainScene", import("view.activity.ActivityMainScene"))
+
+slot0.getUIName = function(slot0)
+	return nil
+end
+
+slot0.getResource = function(slot0, slot1)
+	slot2 = {}
+
+	if slot0:IsImageTgName() then
+		for slot7, slot8 in ipairs(getProxy(ActivityProxy):getCorePanelActivities(slot0.contextData.coreName)) do
+			slot9 = string.lower(slot8:getConfig("title_res_tag"))
+
+			table.insert(slot2, "coreactivityuitable/" .. slot9 .. "_text")
+			table.insert(slot2, "coreactivityuitable/" .. slot9 .. "_text_selected")
+		end
+	end
+
+	table.insertto(slot2, uv0.super.getResource(slot0, slot1))
+
+	return slot2
+end
+
+slot0.optionsPath = {
+	"adapt/top/btn_home"
+}
+
+slot0.PlayBGM = function(slot0)
+end
+
+slot0.init = function(slot0)
+	slot1 = slot0._tf
+	slot0.btnBack = slot1:Find("adapt/top/btn_back")
+	slot1 = slot0._tf
+	slot0.btnSkin = slot1:Find("adapt/btn_skin")
+	slot1 = slot0._tf
+	slot0.pageContainer = slot1:Find("page_list")
+	slot1 = slot0._tf
+	slot0.tabs = slot1:Find("adapt/tabs")
+	slot0.windowList = {}
+	slot0.awardWindow = AwardWindow.New(slot0._tf, slot0.event)
+	slot0.chargeTipWindow = ChargeTipWindow.New(slot0._tf, slot0.event)
+	slot3 = slot0.tabs
+	slot0.tabsList = UIItemList.New(slot0.tabs, slot3:GetChild(0))
+	slot1 = slot0.tabsList
+
+	slot1:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			if not underscore.detect(uv0.activities, function (slot0)
+				return tostring(slot0:getConfig("is_show")) == uv0.name
+			end) or slot3:isEnd() then
+				setActive(slot2, false)
+			elseif not uv0.pageDic[slot3.id] then
+				warning(string.format("without page in act:", slot3.id))
+			else
+				slot5 = slot2:Find("tip")
+
+				if uv0.pageDic[slot3.id]:IsShowReminder() == nil then
+					setActive(slot5, slot3:readyToAchieve())
+				else
+					setActive(slot5, slot6)
+				end
+
+				onToggle(uv0, slot2, function (slot0)
+					if slot0 then
+						uv0:selectActivity(uv1)
+					end
+				end, SFX_PANEL)
+			end
+		end
+	end)
+
+	slot0.switchCount = 0
+end
+
+slot0.didEnter = function(slot0)
+	slot0:bind(uv0.UPDATE_ACTIVITY, function (slot0, slot1)
+		uv0:updateActivity(slot1)
+	end)
+	slot0:bind(uv0.GET_PAGE_BGM, function (slot0, slot1, slot2)
+		slot2.bgm = uv0:getBGM(slot1) or uv0:getBGM()
+	end)
+	slot0:bind(uv0.FLUSH_TABS, function ()
+		uv0:flushTabs()
+	end)
+	onButton(slot0, slot0.btnBack, function ()
+		uv0:emit(uv1.ON_BACK)
+	end, SOUND_BACK)
+
+	if slot0.btnSkin then
+		onButton(slot0, slot0.btnSkin, function ()
+			uv0:emit(ActivityMediator.GO_CHANGE_SHOP)
+		end, SFX_PANEL)
+	end
+
+	slot0:emit(ActivityMediator.SHOW_NEXT_ACTIVITY, slot0.contextData.coreName)
+end
+
+slot0.setActivities = function(slot0, slot1)
+	slot0.activities = underscore.filter(slot1 or {}, function (slot0)
+		return not slot0:isEnd()
+	end)
+	slot0.shareData = slot0.shareData or ActivityShareData.New()
+	slot0.pageDic = slot0.pageDic or {}
+
+	for slot5, slot6 in ipairs(slot0.activities) do
+		slot0:instanceActivityPage(slot6)
+	end
+
+	table.sort(slot0.activities, CompareFuncs({
+		function (slot0)
+			return slot0:getShowPriority()
+		end,
+		function (slot0)
+			return -slot0.id
+		end
+	}))
+	slot0:flushTabs()
+end
+
+slot0.updateActivity = function(slot0, slot1)
+	if ActivityConst.PageIdLink[slot1.id] then
+		slot1 = getProxy(ActivityProxy):getActivityById(ActivityConst.PageIdLink[slot1.id])
+	end
+
+	if slot1:isShow() and slot1:isCorePage(slot0.contextData.coreName) and not slot1:isEnd() then
+		slot0.activities[slot0:getActivityIndex(slot1.id) or #slot0.activities + 1] = slot1
+
+		table.sort(slot0.activities, CompareFuncs({
+			function (slot0)
+				return slot0:getShowPriority()
+			end,
+			function (slot0)
+				return -slot0.id
+			end
+		}))
+
+		if not slot0.pageDic[slot1.id] then
+			slot0:instanceActivityPage(slot1)
+		end
+
+		slot0:flushTabs()
+
+		if slot0.activity and slot0.activity.id == slot1.id then
+			slot0.activity = slot1
+
+			slot0.pageDic[slot1.id]:ActionInvoke("Flush", slot1)
+			slot0:verifyTabs(slot0.activity.id)
+		end
+	end
+end
+
+slot0.instanceActivityPage = function(slot0, slot1)
+	uv0.super.instanceActivityPage(slot0, slot1)
+
+	for slot5, slot6 in pairs(slot0.pageDic) do
+		slot6:SetCoreActivityUI(slot0)
+	end
+end
+
+slot0.updateEntrances = function(slot0)
+end
+
+slot0.flushTabs = function(slot0)
+	slot0.tabsList:align(slot0.tabs.childCount)
+end
+
+slot0.IsImageTgName = function(slot0)
+	return false
+end
+
+slot0.OnToggleName = function(slot0, slot1, slot2)
+	slot3 = slot2:getConfig("title_res_tag")
+
+	setText(slot1:Find("on/name"), i18n(slot3))
+	setText(slot1:Find("off/name"), i18n(slot3))
+
+	slot7 = checkABExist("coreactivityuitable/" .. slot3 .. "_text")
+	slot8 = checkABExist("coreactivityuitable/" .. slot3 .. "_text_selected")
+
+	setActive(slot1:Find("off/imgName"), slot0:IsImageTgName() and slot7)
+	setActive(slot1:Find("off/name"), not slot6 or not slot7)
+	setActive(slot1:Find("on/imgName"), slot6 and slot8)
+	setActive(slot1:Find("on/name"), not slot6 or not slot8)
+
+	if slot0:IsImageTgName() then
+		slot3 = string.lower(slot3)
+
+		if slot7 then
+			setImageSprite(slot1:Find("off/imgName"), GetSpriteFromAtlas(slot4, ""), true)
+		end
+
+		if slot8 then
+			setImageSprite(slot1:Find("on/imgName"), GetSpriteFromAtlas(slot5, ""), true)
+		end
+	end
+end
+
+slot0.selectActivity = function(slot0, slot1)
+	if slot0.nextActivity == slot1 or not slot0.nextActivity and slot0.activity and slot1.id == slot0.activity.id then
+		return
+	end
+
+	slot2 = {}
+
+	if slot0.activity and not slot0.nextActivity then
+		slot0.switchCount = slot0.switchCount + 1
+
+		table.insert(slot2, function (slot0)
+			slot1 = uv0.pageDic[uv0.activity.id]
+
+			slot1:ActionInvoke("SwitchOut", function ()
+				uv0.switchCount = uv0.switchCount - 1
+
+				uv1()
+			end)
+		end)
+	end
+
+	if not slot0.activity or slot0.activity.id ~= slot1.id then
+		assert(slot0.pageDic[slot1.id], "找不到id:" .. slot1.id .. "的活动页，请检查")
+
+		slot0.switchCount = slot0.switchCount + 1
+
+		table.insert(slot2, function (slot0)
+			slot1 = uv0
+
+			slot1:Load()
+
+			slot1 = uv0
+
+			slot1:ActionInvoke("ShowOrHide", false)
+
+			slot1 = uv0
+
+			slot1:CallbackInvoke(function ()
+				uv0.switchCount = uv0.switchCount - 1
+
+				uv1()
+			end)
+		end)
+	end
+
+	slot0.nextActivity = slot1
+
+	parallelAsync(slot2, function ()
+		if uv0.switchCount > 0 then
+			return
+		end
+
+		if uv0.activity then
+			uv0.pageDic[uv0.activity.id]:ActionInvoke("ShowOrHide", false)
+		end
+
+		uv0.activity = uv0.nextActivity
+		uv0.contextData.id = uv0.nextActivity.id
+		uv0.nextActivity = nil
+		slot0 = uv0.pageDic[uv0.activity.id]
+
+		slot0:ActionInvoke("ShowOrHide", true)
+		slot0:ActionInvoke("Flush", uv0.activity)
+		uv0:OnPageSwitchDone(slot0, table.indexof(uv0.activities, uv0.activity))
+	end)
+end
+
+slot0.OnPageSwitchDone = function(slot0, slot1, slot2)
+end
+
+slot0.verifyTabs = function(slot0, slot1)
+	if slot0.activities[slot0:getActivityIndex(slot1) or slot0:getActivityIndex(slot0:GetActiveActivity()) or 1] == nil then
+		return
+	end
+
+	if slot0.tabs:Find(tostring(slot2:getConfig("is_show"))) then
+		triggerToggle(slot4, true)
+	end
+end
+
+slot0.GetActiveActivity = function(slot0)
+	for slot4, slot5 in ipairs(slot0.activities) do
+		if not slot5:isEnd() then
+			return slot5.id
+		end
+	end
+end
+
+slot0.GetActivityIdByPageClass = function(slot0, slot1)
+	slot2 = ipairs
+	slot3 = slot0.activities or {}
+
+	for slot5, slot6 in slot2(slot3) do
+		if slot6:getConfig("page_info") and slot7.class_name == slot1 then
+			return slot6.id
+		end
+	end
+
+	return nil
+end
+
+slot0.onBackPressed = function(slot0)
+	if slot0.pageDic[slot0.activity.id]:IsShowingPopWindow() then
+		slot1:ClosePopWindow()
+
+		return
+	end
+
+	uv0.super.onBackPressed(slot0)
+end
+
+slot0.getActClass = function(slot0, slot1)
+	return _G[slot1]
+end
+
+return slot0

@@ -1,0 +1,149 @@
+slot0 = class("GuildShipEquipmentsPage", import("....base.BaseSubView"))
+
+slot0.getUIName = function(slot0)
+	return "GuildShipEquipmentsPage"
+end
+
+slot0.getResource = function(slot0)
+	return table.insertto({
+		"shiptype",
+		"weaponframes",
+		"ui/iconcolorful"
+	}, uv0.super.getResource(slot0))
+end
+
+slot0.getEquipmentResList = function(slot0, slot1)
+	_.each(slot1 and slot1:getActiveEquipments() or {}, function (slot0)
+		if slot0 then
+			table.insert(uv0, ResPathSupport.CombinePath(ResPathSupport.ConstPath.Equipment.Equip, slot0:getConfig("icon")))
+		end
+	end)
+
+	return {}
+end
+
+slot0.OnLoaded = function(slot0)
+	slot0.shipNameTxt = slot0._tf:Find("frame/ship_info/shipname"):GetComponent(typeof(Text))
+	slot0.userNameTxt = slot0._tf:Find("frame/ship_info/username"):GetComponent(typeof(Text))
+	slot0.shipTypeIcon = slot0._tf:Find("frame/ship_info/ship_type"):GetComponent(typeof(Image))
+	slot0.shipStarList = UIItemList.New(slot0._tf:Find("frame/ship_info/stars"), slot0._tf:Find("frame/ship_info/stars/star_tpl"))
+	slot0.shipLvTxt = slot0._tf:Find("frame/ship_info/lv/Text"):GetComponent(typeof(Text))
+	slot0.equipmentList = UIItemList.New(slot0._tf:Find("frame/equipemtns"), slot0._tf:Find("frame/equipemtns/equipment_tpl"))
+	slot0.playerId = getProxy(PlayerProxy):getRawData().id
+	slot0.nextBtn = slot0._tf:Find("frame/next")
+	slot0.prevBtn = slot0._tf:Find("frame/prev")
+end
+
+slot0.OnInit = function(slot0)
+	onButton(slot0, slot0._tf, function ()
+		uv0:Hide()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.nextBtn, function ()
+		if uv0.onNext then
+			uv0.onNext()
+		end
+	end, SFX_PANEL)
+	onButton(slot0, slot0.prevBtn, function ()
+		if uv0.onPrev then
+			uv0.onPrev()
+		end
+	end, SFX_PANEL)
+end
+
+slot0.SetCallBack = function(slot0, slot1, slot2)
+	slot0.onPrev = slot1
+	slot0.onNext = slot2
+end
+
+slot0.downloadEquipmentResList = function(slot0, slot1, slot2)
+	SplitPackConst.DownloadByLuaArr(slot0:getEquipmentResList(slot1), function ()
+		if uv0._state == uv1.STATES.DESTROY then
+			return
+		end
+
+		uv2()
+	end)
+end
+
+slot0.Show = function(slot0, slot1, slot2, slot3, slot4)
+	slot0:downloadEquipmentResList(slot1, function ()
+		uv0.super.Show(uv1)
+
+		uv1.OnHide = uv2
+
+		if uv3 then
+			uv3()
+		end
+
+		uv1:Flush(uv4, uv5)
+		pg.UIMgr.GetInstance():BlurPanel(uv1._tf)
+		setActive(uv1.nextBtn, uv1.onNext ~= nil)
+		SetActive(uv1.prevBtn, uv1.onPrev ~= nil)
+	end)
+end
+
+slot0.Flush = function(slot0, slot1, slot2)
+	slot0.ship = slot1
+	slot0.member = slot2
+
+	slot0:UpdateShipInfo()
+	slot0:UpdateEquipments()
+end
+
+slot0.Refresh = function(slot0, slot1, slot2)
+	slot0:downloadEquipmentResList(slot1, function ()
+		uv0:Flush(uv1, uv2)
+	end)
+end
+
+slot0.UpdateShipInfo = function(slot0)
+	slot0.shipNameTxt.text = slot0.ship:getName()
+	slot0.userNameTxt.text = slot0.playerId == slot0.member.id and "" or i18n("guild_ship_from") .. slot2.name
+	slot0.shipTypeIcon.sprite = GetSpriteFromAtlas("shiptype", shipType2print(pg.ship_data_statistics[slot1.configId].type))
+	slot6 = slot1:getStar()
+
+	slot0.shipStarList:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			setActive(slot2:Find("star_tpl"), slot1 <= uv0)
+		end
+	end)
+	slot0.shipStarList:align(slot1:getMaxStar())
+
+	slot0.shipLvTxt.text = slot1.level
+end
+
+slot0.UpdateEquipments = function(slot0)
+	slot2 = slot0.ship:getActiveEquipments()
+
+	slot0.equipmentList:make(function (slot0, slot1, slot2)
+		if slot0 == UIItemList.EventUpdate then
+			slot3 = uv0[slot1 + 1]
+
+			setActive(slot2:Find("info"), slot3)
+			setActive(slot2:Find("empty"), not slot3)
+
+			if slot3 then
+				updateEquipment(slot2:Find("info"), slot3)
+				setText(slot2:Find("info/name_bg/Text"), shortenString(slot3:getConfig("name"), 5))
+			end
+		end
+	end)
+	slot0.equipmentList:align(5)
+end
+
+slot0.Hide = function(slot0)
+	uv0.super.Hide(slot0)
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0._tf, slot0._parentTf)
+
+	if slot0.OnHide then
+		slot0.OnHide()
+
+		slot0.OnHide = nil
+	end
+end
+
+slot0.OnDestroy = function(slot0)
+	slot0:Hide()
+end
+
+return slot0

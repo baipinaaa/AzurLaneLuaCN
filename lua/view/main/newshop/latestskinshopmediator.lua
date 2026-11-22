@@ -1,0 +1,234 @@
+slot0 = class("LatestSkinShopMediator", import("...base.ContextMediator"))
+slot0.ON_RECORD_ANIM_PREVIEW_BTN = "LatestSkinShopMediator.ON_RECORD_ANIM_PREVIEW_BTN"
+slot0.OPEN_ACTIVITY = "LatestSkinShopMediator.OPEN_ACTIVITY"
+slot0.ON_SHOPPING_BY_ACT = "LatestSkinShopMediator.ON_SHOPPING_BY_ACT"
+slot0.ON_SHOPPING = "LatestSkinShopMediator.ON_SHOPPING"
+slot0.ON_ITEM_PURCHASE = "LatestSkinShopMediator.ON_ITEM_PURCHASE"
+slot0.ON_ITEM_PURCHASE_4_MESHIMAGE = "LatestSkinShopMediator.ON_ITEM_PURCHASE_4_MESHIMAGE"
+slot0.GO_SHOPS_LAYER = "LatestSkinShopMediator.GO_SHOPS_LAYER"
+slot0.OPEN_SCENE = "LatestSkinShopMediator.OPEN_SCENE"
+slot0.ON_BACKYARD_SHOP = "LatestSkinShopMediator.ON_BACKYARD_SHOP"
+slot0.ON_ITEM_EXPERIENCE = "LatestSkinShopMediator.ON_ITEM_EXPERIENCE"
+slot0.OPEN_OWN_SKIN_LAYER = "LatestSkinShopMediator.OPEN_OWN_SKIN_LAYER"
+slot0.OPEN_GIFT_PACK_LAYER = "LatestSkinShopMediator.OPEN_GIFT_PACK_LAYER"
+slot0.OPEN_CHARGE_BIRTHDAY = "LatestSkinShopMediator:OPEN_CHARGE_BIRTHDAY"
+slot0.CHARGE = "LatestSkinShopMediator:CHARGE"
+slot0.OPEN_CHARGE_ITEM_PANEL = "LatestSkinShopMediator:OPEN_CHARGE_ITEM_PANEL"
+slot0.OPEN_CHARGE_ITEM_BOX = "LatestSkinShopMediator:OPEN_CHARGE_ITEM_BOX"
+slot0.BUY_ITEM = "LatestSkinShopMediator:BUY_ITEM"
+slot0.OPEN_GIFT_ACT_LAYER = "LatestSkinShopMediator.OPEN_GIFT_ACT_LAYER"
+
+slot0.register = function(slot0)
+	slot0:bind(uv0.ON_RECORD_ANIM_PREVIEW_BTN, function (slot0, slot1)
+		uv0:sendNotification(GAME.RECORD_SKIN_ANIM_PREVIEW, {
+			isOpen = slot1
+		})
+	end)
+	slot0:bind(uv0.OPEN_ACTIVITY, function (slot0, slot1)
+		uv0:sendNotification(GAME.GO_SCENE, SCENE.ACTIVITY, {
+			id = slot1
+		})
+	end)
+	slot0:bind(uv0.ON_SHOPPING_BY_ACT, function (slot0, slot1, slot2)
+		uv0:sendNotification(GAME.SKIN_COUPON_SHOPPING, {
+			shopId = slot1,
+			cnt = slot2
+		})
+	end)
+	slot0:bind(uv0.ON_SHOPPING, function (slot0, slot1, slot2)
+		uv0:sendNotification(GAME.SKIN_SHOPPIGN, {
+			id = slot1,
+			count = slot2
+		})
+	end)
+	slot0:bind(uv0.ON_ITEM_PURCHASE, function (slot0, slot1, slot2)
+		uv0:sendNotification(GAME.USE_ITEM, {
+			count = 1,
+			id = slot1,
+			arg = {
+				slot2
+			}
+		})
+	end)
+	slot0:bind(uv0.ON_ITEM_PURCHASE_4_MESHIMAGE, function (slot0, slot1, slot2, slot3)
+		uv0:sendNotification(GAME.USE_ITEM, {
+			count = 1,
+			id = slot1,
+			arg = {
+				slot2,
+				slot3
+			}
+		})
+	end)
+	slot0:bind(uv0.GO_SHOPS_LAYER, function (slot0, slot1)
+		uv0:sendNotification(GAME.GO_SCENE, SCENE.SHOP, {
+			warp = NewShopsScene.TYPE_ACTIVITY,
+			actId = slot1
+		})
+	end)
+	slot0:bind(uv0.OPEN_SCENE, function (slot0, slot1)
+		uv0:sendNotification(GAME.GO_SCENE, slot1[1], slot1[2])
+	end)
+	slot0:bind(uv0.ON_BACKYARD_SHOP, function (slot0)
+		uv0:addSubLayers(Context.New({
+			mediator = NewBackYardShopMediator,
+			viewComponent = NewBackYardShopLayer,
+			data = {
+				topLayer = true,
+				page = 5
+			}
+		}))
+	end)
+	slot0:bind(uv0.ON_ITEM_EXPERIENCE, function (slot0, slot1, slot2, slot3)
+		uv0:sendNotification(GAME.USE_ITEM, {
+			id = slot1,
+			count = slot3,
+			arg = {
+				slot2
+			}
+		})
+	end)
+	slot0:bind(uv0.OPEN_OWN_SKIN_LAYER, function (slot0, slot1, slot2, slot3)
+		uv0:addSubLayers(Context.New({
+			viewComponent = NewSkinAtlasLayer,
+			mediator = NewSkinAtlasMediator
+		}))
+	end)
+	slot0:bind(uv0.OPEN_GIFT_PACK_LAYER, function (slot0, slot1, slot2, slot3)
+		uv0:sendNotification(GAME.GO_SCENE, SCENE.PROBABILITY_SKINSHOP, {
+			giftPackCommodity = slot1,
+			skinCommodities = slot2,
+			skinProbabilitys = slot3
+		})
+	end)
+	slot0:bind(uv0.OPEN_CHARGE_BIRTHDAY, function (slot0, slot1)
+		uv0:addSubLayers(Context.New({
+			mediator = ChargeBirthdayMediator,
+			viewComponent = ChargeBirthdayLayer,
+			data = {}
+		}))
+	end)
+	slot0:bind(uv0.CHARGE, function (slot0, slot1)
+		uv0:sendNotification(GAME.CHARGE_OPERATION, {
+			shopId = slot1
+		})
+	end)
+	slot0:bind(uv0.OPEN_CHARGE_ITEM_PANEL, function (slot0, slot1)
+		uv0:addSubLayers(Context.New({
+			mediator = ChargeItemPanelMediator,
+			viewComponent = ChargeItemPanelLayer,
+			data = {
+				panelConfig = slot1
+			}
+		}))
+	end)
+	slot0:bind(uv0.OPEN_CHARGE_ITEM_BOX, function (slot0, slot1)
+		uv0:addSubLayers(Context.New({
+			mediator = ChargeItemBoxMediator,
+			viewComponent = ChargeItemBoxLayer,
+			data = {
+				panelConfig = slot1
+			}
+		}))
+	end)
+	slot0:bind(uv0.BUY_ITEM, function (slot0, slot1, slot2)
+		uv0:sendNotification(GAME.SHOPPING, {
+			id = slot1,
+			count = slot2
+		})
+	end)
+	slot0:bind(uv0.OPEN_GIFT_ACT_LAYER, function (slot0, slot1)
+		uv0:sendNotification(NewShopMainMediator.ON_SUBLAYER_EVENT, {
+			NewShopMainMediator.OPEN_GIFT_ACT_LAYER,
+			slot1
+		})
+	end)
+end
+
+slot0.initNotificationHandleDic = function(slot0)
+	slot0.handleDic = {
+		[NewShopMainScene.CLOSE_ALL_LAYER] = function (slot0, slot1)
+			slot0.viewComponent:closeView()
+		end,
+		[PlayerProxy.UPDATED] = function (slot0, slot1)
+			slot0.viewComponent:SetResource()
+		end,
+		[GAME.SKIN_SHOPPIGN_DONE] = function (slot0, slot1)
+			if ShopConst.GetShopConfig(slot1:getBody().id) and (slot3.genre == ShopArgs.SkinShop or slot3.genre == ShopArgs.SkinShopTimeLimit) then
+				slot0:HandleNewSkin(slot2.id, slot3.effect_args[1], slot3.genre == ShopArgs.SkinShopTimeLimit)
+			end
+		end,
+		[GAME.SKIN_BY_CHARGE_DONE] = function (slot0, slot1)
+			slot2 = slot1:getBody()
+			slot3 = slot0.viewComponent.commodities or {}
+			slot4 = 0
+
+			for slot8, slot9 in ipairs(slot3) do
+				if slot2.skinId == slot9:getSkinId() then
+					slot4 = slot9.id
+
+					break
+				end
+			end
+
+			print(slot2.skinId, slot4)
+
+			if slot4 > 0 then
+				slot0:HandleNewSkin(slot4, slot2.skinId, false)
+			end
+		end,
+		[GAME.SKIN_COUPON_SHOPPING_DONE] = GAME.SKIN_SHOPPIGN_DONE,
+		[GAME.BUY_FURNITURE_DONE] = function (slot0, slot1)
+			slot0.viewComponent:OnFurnitureUpdate(slot1:getType()[1])
+		end,
+		[NewShopMainMediator.NOTI_UPDATE_CURRENT] = function (slot0, slot1)
+			slot0.viewComponent:GetAllCommodities()
+			slot0.viewComponent:Refresh(true)
+		end,
+		[GAME.CHARGE_OPERATION_DONE] = function (slot0, slot1)
+			if not getProxy(ShopsProxy):IsSkinTypeCharge(slot1:getBody().shopId) then
+				slot0.viewComponent:closeView()
+			end
+		end,
+		[GAME.OPEN_SKIN_COUPON_MULTI_MSG_BOX] = function (slot0, slot1)
+			slot0.viewComponent:OnOpenSkinCouponMultiMsgBox(slot1:getBody())
+		end
+	}
+end
+
+slot0.HandleNewSkin = function(slot0, slot1, slot2, slot3)
+	if pg.ship_skin_template[slot2].skin_type == ShipSkin.SKIN_TYPE_TB then
+		slot0:addSubLayers(Context.New({
+			mediator = NewSkinTBMediator,
+			viewComponent = NewSkinTBLayer,
+			data = {
+				skinId = slot2,
+				timeLimit = slot3
+			}
+		}))
+	elseif PaintingShowScene.GetSkinShowAble(slot2) then
+		slot0:addSubLayers(Context.New({
+			mediator = PaintingShowMediator,
+			viewComponent = PaintingShowNewSkinScene,
+			data = {
+				is_shop = true,
+				skinId = slot2,
+				timeLimit = slot3
+			}
+		}))
+	else
+		slot0:addSubLayers(Context.New({
+			mediator = NewSkinMediator,
+			viewComponent = NewSkinLayer,
+			data = {
+				skinId = slot2,
+				timeLimit = slot3
+			}
+		}))
+	end
+
+	slot0.viewComponent:OnShopping(slot1)
+	pg.EasyRedDotMgr.GetInstance():TriggerMarks("specialShop")
+end
+
+return slot0

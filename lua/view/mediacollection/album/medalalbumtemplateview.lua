@@ -1,0 +1,276 @@
+slot0 = class("StarLightMedalAlbumView", import("view.base.BaseUI"))
+slot0.ICON_SCALE = 1.35
+slot0.MEDAL_COUNT = 8
+
+slot1 = function(slot0)
+	return _.any(pg.activity_template[slot0.id].config_data, function (slot0)
+		return Task.New({
+			id = slot0
+		}):HasActMedalAward()
+	end)
+end
+
+slot2 = function()
+	for slot4, slot5 in ipairs(getProxy(ActivityProxy):getActivitiesByType(ActivityConst.ACTIVITY_TYPE_TASKS)) do
+		if uv0(slot5) then
+			return slot5
+		end
+	end
+
+	return nil
+end
+
+slot0.GetHelpTips = function(slot0)
+	if not uv0() then
+		return ""
+	end
+
+	slot3 = string.split(slot1:GetActivityTimeStr(), "-")
+	slot4 = pg.gametip.help_starLightAlbum.tip
+
+	_.each(slot4, function (slot0)
+		slot0.info = string.gsub(slot0.info, "$1", uv0[2])
+	end)
+
+	return slot4
+end
+
+slot0.getResource = function(slot0)
+	slot1 = {}
+
+	if slot0.GROUP_ID and pg.activity_medal_group[slot2] and slot3.item_show then
+		slot4 = {}
+
+		slot5 = function(slot0)
+			if noEmptyStr(slot0) and not table.contains(uv0, slot0) then
+				table.insert(uv0, slot0)
+			end
+		end
+
+		for slot9, slot10 in ipairs(slot3.item_show) do
+			if slot10 and #slot10 > 0 then
+				slot11 = Drop.New({
+					type = slot10[1],
+					id = slot10[2],
+					count = slot10[3] or 1
+				})
+				slot12 = slot11:getIcon()
+
+				if slot11.type == DROP_TYPE_FURNITURE then
+					slot12 = "furnitureicon/" .. slot12
+				end
+
+				slot5(slot12)
+			end
+		end
+
+		for slot9, slot10 in ipairs(slot4) do
+			table.insert(slot1, slot10)
+		end
+	end
+
+	table.insertto(slot1, uv0.super.getResource(slot0))
+
+	return slot1
+end
+
+slot0.SetMedalGroupData = function(slot0, slot1)
+	slot0.medalGroupList = slot1
+	slot0.currentMedalGroup = slot0.medalGroupList[slot0.GROUP_ID] or ActivityMedalGroup.New(slot0.GROUP_ID)
+
+	if slot0.currentMedalGroup:GetMedalGroupState() == ActivityMedalGroup.STATE_ACTIVE then
+		slot0.medalTaskView:SetMedalGroup(slot0.currentMedalGroup)
+	end
+
+	slot0.medalDetailView:SetMedalGroup(slot0.currentMedalGroup)
+
+	slot2 = slot0.currentMedalGroup:GetMedalIds()
+
+	for slot6 = 1, slot0.MEDAL_COUNT do
+		slot7 = slot2[slot6]
+
+		LoadImageSpriteAsync("activitymedal/" .. slot7 .. "_l", slot0.slots[slot6].slot, true)
+		LoadImageSpriteAsync("activitymedal/" .. slot7, slot0.slots[slot6].active, true)
+	end
+end
+
+slot0.ShowPageBtn = function(slot0, slot1)
+	setActive(slot0.prevBtn, false)
+	setActive(slot0.nextBtn, false)
+end
+
+slot0.UpdateMedalList = function(slot0)
+end
+
+slot0.init = function(slot0)
+	slot0:FindUI()
+
+	slot0.loader = AutoLoader.New()
+end
+
+slot0.FindUI = function(slot0)
+	slot1 = slot0._tf:Find("Top")
+	slot0.bg = slot0._tf:Find("mask")
+	slot0.backBtn = slot1:Find("BackBtn")
+	slot0.helpBtn = slot1:Find("InfoBtn")
+	slot0.taskBtn = slot0._tf:Find("Desk/taskBtn")
+	slot0.prevBtn = slot0._tf:Find("Desk/prevBtn")
+	slot0.nextBtn = slot0._tf:Find("Desk/nextBtn")
+	slot0.slots = {}
+
+	for slot5 = 1, slot0.MEDAL_COUNT do
+		slot0.slots[slot5] = {
+			slot = slot0._tf:Find("Desk/Slot" .. slot5),
+			active = slot0._tf:Find("Desk/Slot" .. slot5 .. "/active"),
+			tips = slot0._tf:Find("Desk/Slot" .. slot5 .. "/reddot"),
+			click = slot0._tf:Find("Desk/Slot" .. slot5 .. "/Click")
+		}
+	end
+
+	slot0.medalLock = slot0._tf:Find("Desk/medal")
+	slot0.trophyLock = slot0._tf:Find("Desk/trophy")
+	slot0.medalDetailView = MedalDetailPanel.New(slot0._tf:Find("DetailView"), slot0)
+
+	slot0.medalDetailView:SetIconScale(slot0.ICON_SCALE)
+
+	slot0.medalTaskView = MedalTaskPanel.New(slot0._tf:Find("TaskView"), slot0)
+end
+
+slot0.didEnter = function(slot0)
+	uv0.super.didEnter(slot0)
+	slot0:AddListener()
+	slot0:UpdateView()
+	pg.UIMgr.GetInstance():BlurPanel(slot0._tf)
+end
+
+slot0.AddListener = function(slot0)
+	slot4 = function()
+		uv0:closeView()
+	end
+
+	onButton(slot0, slot0.backBtn, slot4, SFX_CANCEL)
+
+	for slot4 = 1, slot0.MEDAL_COUNT do
+		onButton(slot0, slot0.slots[slot4].click, function ()
+			uv0:showMedalView(uv1)
+		end)
+	end
+
+	onButton(slot0, slot0.taskBtn, function ()
+		uv0:showTaskView()
+	end)
+	onButton(slot0, slot0.bg, function ()
+		uv0:closeView()
+	end, SFX_PANEL)
+	onButton(slot0, slot0.helpBtn, function ()
+		if not uv0:GetHelpTips() or slot0 == "" then
+			return
+		end
+
+		pg.MsgboxMgr.GetInstance():ShowMsgBox({
+			type = MSGBOX_TYPE_HELP,
+			helps = slot0
+		})
+	end)
+	onButton(slot0, slot0.medalLock, function ()
+		slot0 = uv0.currentMedalGroup:getConfig("item_show")[2]
+
+		uv0:emit(BaseUI.ON_DROP, {
+			type = slot0[1],
+			id = slot0[2],
+			count = slot0[3]
+		})
+	end, SFX_PANEL)
+
+	if slot0.trophyLock then
+		onButton(slot0, slot0.trophyLock, function ()
+			slot0 = uv0.currentMedalGroup:getConfig("item_show")[1]
+
+			uv0:emit(BaseUI.ON_DROP, {
+				type = slot0[1],
+				id = slot0[2],
+				count = slot0[3]
+			})
+		end, SFX_PANEL)
+	end
+end
+
+slot0.showMedalView = function(slot0, slot1)
+	slot0.medalDetailView:SetCurrentIndex(slot1)
+	slot0.medalDetailView:UpdateMedal()
+	slot0.medalDetailView:SetActive(true)
+end
+
+slot0.showTaskView = function(slot0)
+	slot0.medalTaskView:ShowMedalTask()
+	slot0.medalTaskView:SetActive(true)
+end
+
+slot0.UpdateView = function(slot0)
+	slot1 = slot0.currentMedalGroup:GetMedalIds()
+	slot2 = slot0.currentMedalGroup:GetMedalList()
+
+	for slot6 = 1, slot0.MEDAL_COUNT do
+		slot8 = slot0.slots[slot6]
+
+		if slot2[slot1[slot6]].timeStamp then
+			setActive(slot8.active, true)
+		else
+			setActive(slot8.active, false)
+		end
+	end
+
+	if slot0.trophyLock then
+		slot0.trophyLock:GetComponent(typeof(Image)).enabled = not slot0:OwnTrophy()
+	end
+
+	slot0.medalLock:GetComponent(typeof(Image)).enabled = not slot0:OwnMedal()
+
+	setActive(slot0.taskBtn, slot0.currentMedalGroup:GetMedalGroupState() == ActivityMedalGroup.STATE_ACTIVE)
+end
+
+slot0.OwnTrophy = function(slot0)
+	slot2 = -1
+
+	if slot0.currentMedalGroup:getConfig("task_show") and type(slot1) == "table" then
+		slot2 = slot1[1]
+	end
+
+	if slot2 <= 0 then
+		return false
+	end
+
+	return Task.OwnSpAward(pg.task_data_template[slot2].award_display[1])
+end
+
+slot0.OwnMedal = function(slot0)
+	slot2 = -1
+
+	if slot0.currentMedalGroup:getConfig("task_show") and type(slot1) == "table" then
+		slot2 = slot1[2]
+	end
+
+	if slot2 <= 0 then
+		return false
+	end
+
+	slot3 = pg.task_data_template[slot2].award_display
+
+	return Task.OwnSpAward(slot3[#slot3])
+end
+
+slot0.FlushTaskPanel = function(slot0)
+	slot0.medalTaskView:SetMedalGroup(slot0.currentMedalGroup)
+	slot0.medalTaskView:ShowMedalTask()
+end
+
+slot0.willExit = function(slot0)
+	slot0.medalDetailView:SetActive(false)
+	slot0.medalTaskView:SetActive(false)
+	slot0.medalDetailView:Dispose()
+	slot0.medalTaskView:Dispose()
+	pg.UIMgr.GetInstance():UnOverlayPanel(slot0._tf)
+	slot0.loader:Clear()
+end
+
+return slot0

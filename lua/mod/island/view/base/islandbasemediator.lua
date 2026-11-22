@@ -1,0 +1,374 @@
+slot0 = class("IslandBaseMediator", import("view.base.ContextMediator"))
+slot0.SET_UP = "IslandBaseScene:SET_UP"
+slot0.SWITCH_MAP = "IslandBaseMediator:SWITCH_MAP"
+slot0.RECORD_PLAYER_POS = "IslandBaseMediator:RECORD_PLAYER_POS"
+slot0.ANIMATION_OP = "IslandBaseMediator:ANIMATION_OP"
+slot0.SEND_CHAT = "IslandBaseMediator:SEND_CHAT"
+slot0.CHANGE_CHAT_ROOM = "IslandBaseMediator:CHANGE_CHAT_ROOM"
+slot0.OPEN_FRIEND_INFO = "IslandBaseMediator:OPEN_FRIEND_INFO"
+slot0.GO_FISHING = "IslandBaseMediator:GO_FISHING"
+slot0.FISHING_RESULT = "IslandBaseMediator:FISHING_RESULT"
+slot0.EXCHANGE_LURE = "IslandBaseMediator:EXCHANGE_LURE"
+slot0.TRADE_OP = "IslandBaseMediator:TRADE_OP"
+slot0.REQ_TRADE_RANK = "IslandBaseMediator:REQ_TRADE_RANK"
+slot0.TRADE_INVITATION = "IslandBaseMediator:TRADE_INVITATION"
+slot0.ENTER_ISLAND = "IslandBaseMediator:ENTER_ISLAND"
+
+slot0.register = function(slot0)
+	slot0:bind(uv0.EXCHANGE_LURE, function (slot0, slot1, slot2, slot3)
+		uv0:sendNotification(GAME.ISLAND_EXCHANGE_LURE, {
+			lureId = slot1,
+			fishPointId = slot2,
+			callback = slot3
+		})
+	end)
+	slot0:bind(uv0.FISHING_RESULT, function (slot0, slot1, slot2, slot3, slot4, slot5, slot6)
+		uv0:sendNotification(GAME.ISLAND_FISHING_REUSLT, {
+			fishId = slot3,
+			fishPointId = slot2,
+			weight = slot4,
+			cupType = slot5,
+			islandId = uv0.viewComponent:GetIsland().id,
+			op = slot1,
+			callback = slot6
+		})
+	end)
+	slot0:bind(uv0.GO_FISHING, function (slot0, slot1, slot2, slot3)
+		uv0:sendNotification(GAME.ISLAND_GO_FISHING, {
+			poolId = slot1,
+			baitId = slot2,
+			islandId = uv0.viewComponent:GetIsland().id,
+			callback = slot3
+		})
+	end)
+	slot0:bind(uv0.ENTER_ISLAND, function (slot0, slot1)
+		uv0:sendNotification(GAME.ISLAND_ENTER, {
+			id = slot1
+		})
+	end)
+	slot0:bind(uv0.TRADE_INVITATION, function (slot0, slot1, slot2, slot3)
+		uv0:sendNotification(GAME.ISLAND_INVITE_TRADE, {
+			list = slot1,
+			mapId = slot2,
+			price = slot3
+		})
+	end)
+	slot0:bind(uv0.REQ_TRADE_RANK, function (slot0, slot1)
+		uv0:sendNotification(GAME.ISLAND_GET_FRIEND_TRADE_RANK, {
+			callback = slot1
+		})
+	end)
+	slot0:bind(uv0.TRADE_OP, function (slot0, slot1, slot2, slot3)
+		if not uv0.viewComponent:GetIsland():GetTradeAgency():CanPurchase() then
+			pg.TipsMgr.GetInstance():ShowTips(i18n("island_trade_price_unrefresh"))
+
+			return
+		end
+
+		uv0:sendNotification(GAME.ISLAND_TRADE, {
+			islandId = slot4.id,
+			op = slot1,
+			num = slot2,
+			price = slot3
+		})
+	end)
+	slot0:bind(uv0.OPEN_FRIEND_INFO, function (slot0, slot1, slot2, slot3)
+		uv0.friendInfoPosition = slot2
+		uv0.friendInfoMsg = slot3
+
+		uv0:sendNotification(GAME.FRIEND_SEARCH, {
+			type = SearchFriendCommand.SEARCH_TYPE_RESUME,
+			keyword = slot1
+		})
+	end)
+	slot0:bind(uv0.CHANGE_CHAT_ROOM, function (slot0, slot1)
+		if not slot1 then
+			return
+		end
+
+		if slot1 <= 0 or slot1 == "" then
+			return
+		end
+
+		uv0:sendNotification(GAME.CHANGE_CHAT_ROOM, slot1)
+	end)
+	slot0:bind(uv0.SEND_CHAT, function (slot0, slot1, slot2)
+		uv0:sendNotification(GAME.ISLAND_SEND_CHAT, {
+			channel = slot1,
+			islandId = uv0.viewComponent:GetIsland().id,
+			msg = slot2
+		})
+	end)
+	slot0:bind(uv0.ANIMATION_OP, function (slot0, slot1, slot2)
+		uv0:sendNotification(GAME.ISLAND_ANIMATION_OP, {
+			islandId = uv0.viewComponent:GetIsland().id,
+			targetId = slot1,
+			actionId = slot2
+		})
+	end)
+	slot0:bind(uv0.SET_UP, function (slot0)
+		uv0:SetUp()
+	end)
+	slot0:bind(uv0.SWITCH_MAP, function (slot0, slot1, slot2)
+		if not uv0.viewComponent:GetIsland():GetAblityAgency():IsUnlockMap(slot1) and slot1 ~= IslandConst.CheaterTavernMapId then
+			pg.TipsMgr.GetInstance():ShowTips(i18n("island_lock_map_tip"))
+
+			return
+		end
+
+		uv0:sendNotification(GAME.ISLAND_ENTER_MAP, {
+			islandId = slot3.id,
+			mapId = slot1,
+			callback = function ()
+				if pg.island_world_objects[uv0] then
+					uv1:RecordPlayerPosition(uv2, BuildVector3(slot0.param.position), BuildVector3(slot0.param.rotation))
+				end
+
+				uv1:SwitchScene(uv2, uv0)
+			end
+		})
+	end)
+	slot0:bind(uv0.RECORD_PLAYER_POS, function (slot0)
+		if not _IslandCore then
+			return
+		end
+
+		slot1 = _IslandCore:GetController().mapId
+
+		if not _IslandCore:GetView().player or not slot2._tf then
+			return
+		end
+
+		slot3, slot4 = slot2:LastGroundedPosition()
+
+		uv0:RecordPlayerPosition(slot1, slot3, slot4)
+	end)
+	slot0:_register()
+end
+
+slot0.RecordPlayerPosition = function(slot0, slot1, slot2, slot3)
+	if not _IslandCore then
+		return
+	end
+
+	if not _IslandCore:GetController():IsSelfIsland() then
+		return
+	end
+
+	slot0:sendNotification(GAME.ISLAND_RECORD_LAST_EXIT_POS, {
+		islandId = slot0.viewComponent:GetIsland().id,
+		mapId = slot1,
+		position = slot2,
+		rotation = slot3
+	})
+end
+
+slot0.listNotificationInterests = function(slot0)
+	slot1 = {
+		ChatProxy.NEW_MSG,
+		FriendProxy.FRIEND_NEW_MSG,
+		GuildProxy.NEW_MSG_ADDED,
+		IslandProxy.CHAT_MSG_UPDATE,
+		GAME.CHANGE_CHAT_ROOM_DONE,
+		GAME.FRIEND_SEARCH_DONE,
+		GAME.ON_APPLICATION_PAUSE,
+		GAME.ISLAND_ON_HOME,
+		GAME.ISLAND_ON_RECONNECT,
+		GAME.ISLAND_CORE_STATE_CHANGED,
+		GAME.ISLAND_TRADE_DONE,
+		IslandTradegency.WEEK_NUM_UPDATE,
+		IslandTradegency.INVITE_LIST_UPDATE,
+		GAME.ISLAND_SELECT_GIFT_DONE,
+		GAME.PLAY_ROOM_LOAD_MINIGAME_SCENE,
+		GAME.PLAY_ROOM_ALL_LOAD_OVER,
+		GAME.PLAY_ROOM_ENTER_LOAD,
+		PlayRoomProxy.CHAT_MSG_UPDATE,
+		GAME.OPEN_FRIEND_INFO_DONE
+	}
+
+	for slot6, slot7 in ipairs(slot0:_listNotificationInterests()) do
+		if not table.contains(slot1, slot7) then
+			table.insert(slot1, slot7)
+		end
+	end
+
+	return slot1
+end
+
+slot0.handleNotification = function(slot0, slot1)
+	slot3 = slot1:getBody()
+
+	if slot1:getName() == ChatProxy.NEW_MSG or slot2 == FriendProxy.FRIEND_NEW_MSG or slot2 == GuildProxy.NEW_MSG_ADDED or slot2 == IslandProxy.CHAT_MSG_UPDATE then
+		slot0.viewComponent:emitCore(ISLAND_EVT.CHAT_MSG_UPDATE)
+
+		if slot2 == IslandProxy.CHAT_MSG_UPDATE and slot3.islandId == slot0.viewComponent:GetIsland().id then
+			slot0.viewComponent:emitCore(ISLAND_EVT.SHOW_CHAT_MSG, slot3.msg)
+		end
+	elseif slot2 == GAME.CHANGE_CHAT_ROOM_DONE then
+		slot0.viewComponent:emitCore(ISLAND_EVT.CHAT_ROOM_UPDATE)
+	elseif slot2 == GAME.OPEN_FRIEND_INFO_DONE then
+		slot0.friendInfoPosition = slot3
+	elseif slot2 == GAME.FRIEND_SEARCH_DONE and slot3.list[1] and slot3.type == SearchFriendCommand.SEARCH_TYPE_RESUME then
+		slot0:addSubLayers(Context.New({
+			viewComponent = IslandFriendInfoLayer,
+			mediator = FriendInfoMediator,
+			data = {
+				friend = slot3.list[1],
+				msg = slot0.friendInfoMsg,
+				pos = slot0.friendInfoPosition
+			}
+		}))
+
+		slot0.friendInfoPosition = nil
+		slot0.friendInfoMsg = nil
+	elseif slot2 == GAME.ON_APPLICATION_PAUSE then
+		if not slot3 and _IslandCore and not slot0.exitProcessing then
+			slot0:sendNotification(GAME.ISLAND_RECONNECT, {
+				islandId = _IslandCore:GetController():GetIsland().id
+			})
+		end
+	elseif slot2 == GAME.ISLAND_ON_HOME then
+		slot0.viewComponent:emit(BaseUI.ON_HOME)
+	elseif slot2 == GAME.ISLAND_ON_RECONNECT then
+		if slot0.exitProcessing then
+			return
+		end
+
+		slot4 = function()
+			uv0.exitProcessing = true
+			slot1 = _IslandCore
+			slot1 = slot1:GetController()
+			uv1.id = slot1:GetIsland().id
+			slot0 = uv0.viewComponent
+
+			slot0:ExitProcess("", function ()
+				uv0.exitProcessing = false
+
+				uv0:sendNotification(GAME.ISLAND_CHANGE_ENTER, uv1)
+			end)
+		end
+
+		if _IslandCore and _IslandCore.state == IslandCore.STATE_INIT_FINISH then
+			if isa(_IslandCore, IslandMinigameCore) then
+				slot0.viewComponent:GetIsland():GetCheaterTavernAgency():SetIsConnecting(false)
+			end
+
+			slot4()
+		else
+			slot0.coreInitCallback = slot4
+		end
+	elseif slot2 == GAME.ISLAND_SELECT_GIFT_DONE then
+		slot0.viewComponent:HandleAwardDisplay(slot3.dropData, slot3.callback, IslandAwardDisplayPage.TYPE_SIGN_GIFT)
+	elseif slot2 == GAME.ISLAND_CORE_STATE_CHANGED then
+		if slot3 == IslandCore.STATE_INIT_FINISH and slot0.coreInitCallback then
+			slot0.coreInitCallback()
+
+			slot0.coreInitCallback = nil
+		end
+	elseif slot2 == GAME.ISLAND_TRADE_DONE then
+		slot0.viewComponent:HandleAwardDisplay(slot3.dropData, slot3.callback)
+	elseif slot2 == GAME.PLAY_ROOM_LOAD_MINIGAME_SCENE then
+		slot0.isReconected = slot3.isReconecting
+
+		if slot0.viewComponent:GetIsland():GetMapId() ~= slot3.mapId then
+			slot0:LoadMiniGameScene(slot4)
+
+			slot0.needChangeMap = true
+		else
+			slot0.needChangeMap = false
+
+			Timer.New(function ()
+				pg.m02:sendNotification(GAME.PLAY_ROOM_LOAD_SCENE_COMPLETE)
+			end, 2, 0):Start()
+		end
+	elseif slot2 == GAME.PLAY_ROOM_ALL_LOAD_OVER then
+		slot0:ChangeMiniGameScene()
+	end
+
+	slot0:_handleNotification(slot1)
+	slot0.viewComponent:emit(slot2, slot3)
+end
+
+slot0.LoadMiniGameScene = function(slot0, slot1)
+	slot0.viewComponent:GetIsland():SetMapId(slot1)
+
+	slot0.miniGameCore = IslandMinigameCore.New(slot0.viewComponent:GetPoolMgr(), slot2, _IslandCore:GetView():GetSubView(IslandOpView) and slot4.showBalance or 0)
+
+	slot0.miniGameCore:SetIslandViewCoponent(slot0.viewComponent)
+	slot0.miniGameCore:SetIsReconected(slot0.isReconected)
+end
+
+slot0.ChangeMiniGameScene = function(slot0)
+	slot1 = pg.SceneAnimMgr.GetInstance()
+
+	slot1:CommonSceneChange("Dorm3DLoading", function (slot0)
+		if uv0.needChangeMap then
+			uv0:UnloadScene()
+
+			_IslandCore = uv0.miniGameCore
+		end
+
+		_IslandCore:OnChangeMiniGameScene(uv0.needChangeMap, uv0.isReConnected)
+		slot0()
+	end)
+end
+
+slot0.SetUp = function(slot0, slot1)
+	slot2 = slot0.viewComponent:GetIsland()
+	_IslandCore = IslandCore.New(slot0.viewComponent:GetPoolMgr(), slot2, slot1)
+
+	slot0.viewComponent:OnSetUpCore(slot2.mapID, slot2.spawnPointId)
+end
+
+slot0.SwitchScene = function(slot0, slot1, slot2)
+	slot0.viewComponent:GetIsland():SetMapId(slot1)
+
+	if slot2 then
+		slot3:SetSpawnPointId(slot2)
+	end
+
+	slot0:SetUp(slot0:UnloadScene())
+end
+
+slot0.UnloadScene = function(slot0, slot1)
+	slot0.viewComponent:OnUnloadScene()
+
+	if _IslandCore then
+		if isa(_IslandCore, IslandMinigameCore) then
+			_IslandCore:Dispose(slot1)
+
+			_IslandCore = nil
+
+			return _IslandCore.showBalance
+		else
+			_IslandCore:Dispose(slot1)
+
+			_IslandCore = nil
+
+			return _IslandCore:GetView():GetSubView(IslandOpView) and slot3.showBalance or 1
+		end
+	end
+
+	return 1
+end
+
+slot0.remove = function(slot0)
+	slot0:UnloadScene(true)
+	slot0:_remove()
+	IslandHelper.RunGC(true)
+end
+
+slot0._register = function(slot0)
+end
+
+slot0._listNotificationInterests = function(slot0)
+	return {}
+end
+
+slot0._handleNotification = function(slot0, slot1)
+end
+
+slot0._remove = function(slot0)
+end
+
+return slot0

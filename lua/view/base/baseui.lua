@@ -1,0 +1,524 @@
+slot0 = class("BaseUI", import("view.base.BaseEventLogic"))
+slot0.LOADED = "BaseUI:LOADED"
+slot0.DID_ENTER = "BaseUI:DID_ENTER"
+slot0.AVALIBLE = "BaseUI:AVALIBLE"
+slot0.DID_EXIT = "BaseUI:DID_EXIT"
+slot0.ON_BACK = "BaseUI:ON_BACK"
+slot0.ON_RETURN = "BaseUI:ON_RETURN"
+slot0.ON_HOME = "BaseUI:ON_HOME"
+slot0.ON_CLOSE = "BaseUI:ON_CLOSE"
+slot0.ON_DROP = "BaseUI.ON_DROP"
+slot0.ON_DROP_LIST = "BaseUI.ON_DROP_LIST"
+slot0.ON_DROP_LIST_OWN = "BaseUI.ON_DROP_LIST_OWN"
+slot0.ON_NEW_DROP = "BaseUI.ON_NEW_DROP"
+slot0.ON_NEW_STYLE_DROP = "BaseUI.ON_NEW_STYLE_DROP"
+slot0.ON_NEW_STYLE_ITEMS = "BaseUI.ON_NEW_STYLE_ITEMS"
+slot0.ON_ITEM = "BaseUI:ON_ITEM"
+slot0.ON_ITEM_EXTRA = "BaseUI.ON_ITEM_EXTRA"
+slot0.ON_SHIP = "BaseUI:ON_SHIP"
+slot0.ON_AWARD = "BaseUI:ON_AWARD"
+slot0.ON_ACHIEVE = "BaseUI:ON_ACHIEVE"
+slot0.ON_ACHIEVE_AUTO = "BaseUI:ON_ACHIEVE_AUTO"
+slot0.ON_WORLD_ACHIEVE = "BaseUI:ON_WORLD_ACHIEVE"
+slot0.ON_EQUIPMENT = "BaseUI:ON_EQUIPMENT"
+slot0.ON_SPWEAPON = "BaseUI:ON_SPWEAPON"
+slot0.ON_SHIP_EXP = "BaseUI.ON_SHIP_EXP"
+slot0.ON_BACK_PRESSED = "BaseUI:ON_BACK_PRESS"
+slot0.ON_ADD_SUBLAYER = "BaseUI:ON_ADD_SUBLAYER"
+slot0.ON_GO_SCENE = "BaseUI:ON_GO_SCENE"
+
+slot0.Ctor = function(slot0)
+	uv0.super.Ctor(slot0)
+
+	slot0._isLoaded = false
+	slot0._go = nil
+	slot0._tf = nil
+	slot0._isCachedView = false
+end
+
+slot0.setContextData = function(slot0, slot1)
+	slot0.contextData = slot1
+end
+
+slot0.getUIName = function(slot0)
+	return nil
+end
+
+slot0.getGroupName = function(slot0)
+	return slot0.contextData.groupName or slot0.__cname
+end
+
+slot0.getDefaultUI = function(slot0)
+	return slot0._tf
+end
+
+slot0.preloadUIList = function(slot0)
+	return {
+		slot0:getUIName()
+	}
+end
+
+slot0.getResource = function(slot0)
+	_.each({
+		slot0:getBGM()
+	}, function (slot0)
+		if noEmptyStr(slot0) then
+			_.each(ResPathSupport.GetSoundResList(slot0), function (slot0)
+				table.insert(uv0, slot0)
+			end)
+		end
+	end)
+	_.each(slot0:preloadUIList(), function (slot0)
+		if noEmptyStr(slot0) then
+			table.insert(uv0, ResPathSupport.CombinePath(ResPathSupport.ConstPath.UI.Base, slot0))
+		end
+	end)
+
+	return {}
+end
+
+slot0.needCache = function(slot0)
+	return false
+end
+
+slot0.tempCache = function(slot0)
+	return false
+end
+
+slot0.forceGC = function(slot0)
+	return false
+end
+
+slot0.DontGC = function(slot0)
+	return false
+end
+
+slot0.forceRatio = function(slot0)
+	return nil
+end
+
+slot0.loadingQueue = function(slot0)
+	return false
+end
+
+slot0.setLayerMgrRegister = function(slot0, slot1)
+	if not slot0.contextData then
+		return
+	end
+
+	slot2 = slot0:getGroupName()
+
+	if slot1 then
+		pg.LayerWeightMgr.GetInstance():RegisterGroupWeight(slot2)
+	else
+		pg.LayerWeightMgr.GetInstance():RemoveGroupWeight(slot2)
+	end
+end
+
+slot0.preload = function(slot0, slot1)
+	slot1()
+end
+
+slot0.loadUISync = function(slot0, slot1)
+	slot2 = LoadAndInstantiateSync("UI", slot1, true, false)
+
+	slot2.transform:SetParent(pg.UIMgr.GetInstance().UIMain.transform, false)
+
+	return slot2
+end
+
+slot0.GCWhenAwake = function(slot0)
+	return tobool(slot0:loadingQueue())
+end
+
+slot0.load = function(slot0)
+	slot0:setLayerMgrRegister(true)
+
+	slot1 = nil
+	slot2 = Time.realtimeSinceStartup
+	slot3 = slot0:getUIName()
+
+	seriesAsync({
+		function (slot0)
+			if uv0:GCWhenAwake() then
+				gcAll(true)
+			end
+
+			uv0:preload(slot0)
+		end,
+		function (slot0)
+			slot1 = uv0
+
+			slot1:LoadUIFromPool(uv1, function (slot0)
+				print("Loaded " .. uv0)
+
+				uv1 = slot0
+
+				uv2()
+			end)
+		end
+	}, function ()
+		originalPrint("load " .. uv0.name .. " time cost: " .. Time.realtimeSinceStartup - uv1)
+		uv2:SetUIParent(uv0)
+
+		if uv2:CheckTempCache() then
+			PoolMgr.GetInstance():KeepUICache(uv3, true)
+		end
+
+		uv2:onUILoaded(uv0)
+	end)
+end
+
+slot0.SetUIParent = function(slot0, slot1)
+	slot1.transform:SetParent(pg.UIMgr.GetInstance().UIMain.transform, false)
+end
+
+slot0.LoadUIFromPool = function(slot0, slot1, slot2)
+	PoolMgr.GetInstance():GetUI(slot1, true, slot2)
+end
+
+slot0.getBGM = function(slot0, slot1)
+	return getBgm(slot1 or slot0.__cname)
+end
+
+slot0.PlayBGM = function(slot0)
+	if slot0:getBGM() then
+		pg.BgmMgr.GetInstance():Push(slot0.__cname, slot1)
+	end
+end
+
+slot0.StopBgm = function(slot0)
+	if not slot0.contextData then
+		return
+	end
+
+	if slot0.contextData.isLayer then
+		pg.BgmMgr.GetInstance():Pop(slot0.__cname)
+	else
+		pg.BgmMgr.GetInstance():Clear()
+	end
+end
+
+slot0.isLoaded = function(slot0)
+	return slot0._isLoaded
+end
+
+slot0.CheckTempCache = function(slot0)
+	return slot0:tempCache() and slot0:isLayer()
+end
+
+slot0.isLayer = function(slot0)
+	return slot0.contextData ~= nil and slot0.contextData.isLayer
+end
+
+slot0.Add2Overlay = function(slot0, slot1, slot2)
+	if not slot0.contextData then
+		return
+	end
+
+	slot2 = slot2 or {}
+	slot2.groupName = slot0:getGroupName()
+
+	pg.LayerWeightMgr.GetInstance():Add2Overlay(slot1, slot2)
+end
+
+slot0.DelFromOverlay = function(slot0, slot1, ...)
+	if not slot0.contextData then
+		return
+	end
+
+	pg.LayerWeightMgr.GetInstance():DelFromOverlay(slot1, ...)
+end
+
+slot0.OverlayPanel = function(slot0, slot1, slot2)
+	slot2 = slot2 or {}
+	slot2.type = LayerWeightConst.UI_TYPE_SUB
+
+	slot0:Add2Overlay(slot1, slot2)
+end
+
+slot0.BlurPanel = function(slot0, slot1, slot2)
+	slot2 = slot2 or {}
+	slot2.type = LayerWeightConst.UI_TYPE_SUB
+	slot2.globalBlur = true
+
+	slot0:Add2Overlay(slot1, slot2)
+end
+
+slot0.UnOverlayPanel = function(slot0, slot1, slot2)
+	slot0:DelFromOverlay(slot1, slot2 or slot0.UIMain)
+end
+
+slot0.TempOverlayPanelPB = function(slot0, slot1, slot2)
+	if not slot0.contextData then
+		return
+	end
+
+	slot2 = slot2 or {}
+	slot2.groupName = slot0:getGroupName()
+
+	pg.UIMgr.GetInstance():TempOverlayPanelPB(slot1, slot2)
+end
+
+slot0.TempUnOverlayPanelPB = function(slot0, slot1, slot2)
+	if not slot0.contextData then
+		return
+	end
+
+	pg.UIMgr.GetInstance():TempUnOverlayPanelPB(slot1, slot2)
+end
+
+slot0.optionsPath = {
+	"option",
+	"top/option",
+	"top/left_top/option",
+	"blur_container/top/title/option",
+	"blur_container/top/option",
+	"top/top/option",
+	"common/top/option",
+	"blur_panel/top/option",
+	"blurPanel/top/option",
+	"blur_container/top/option",
+	"top/title/option",
+	"blur_panel/adapt/top/option",
+	"mainPanel/top/option",
+	"bg/top/option",
+	"blur_container/adapt/top/title/option",
+	"blur_container/adapt/top/option",
+	"ForNorth/top/option",
+	"top/top_chapter/option",
+	"Main/blur_panel/adapt/top/option",
+	"adapt/blur_panel/adapt/top/option"
+}
+
+slot0.onUILoaded = function(slot0, slot1)
+	slot0._go = slot1
+	slot0._tf = slot1 and slot1.transform
+
+	slot0:Add2Overlay(slot0:getDefaultUI(), {
+		type = LayerWeightConst.UI_TYPE_SYSTEM
+	})
+	pg.SeriesGuideMgr.GetInstance():dispatch({
+		view = slot0.__cname
+	})
+	pg.NewStoryMgr.GetInstance():OnSceneEnter({
+		view = slot0.__cname
+	})
+
+	slot0._isLoaded = true
+
+	pg.DelegateInfo.New(slot0)
+
+	slot0.optionBtns = {}
+
+	for slot5, slot6 in ipairs(slot0.optionsPath) do
+		table.insert(slot0.optionBtns, slot0._tf:Find(slot6))
+	end
+
+	setActiveViaLayer(slot0._tf, true)
+	bindComponent(slot0, slot0._go)
+	slot0:init()
+	slot0:emit(uv0.LOADED)
+end
+
+slot0.ResUISettings = function(slot0)
+	return nil
+end
+
+slot0.ShowOrHideResUI = function(slot0, slot1)
+	if not slot0:ResUISettings() then
+		return
+	end
+
+	if slot2 == true then
+		slot2 = {
+			anim = true,
+			showType = PlayerResUI.TYPE_ALL
+		}
+	end
+
+	slot3 = slot0:getGroupName()
+
+	if slot1 then
+		pg.playerResUI:SetSettings(slot3, setmetatable({
+			groupName = slot3
+		}, {
+			__index = slot2
+		}))
+	else
+		pg.playerResUI:RemoveSettings(slot3)
+	end
+end
+
+slot0.onUIAnimEnd = function(slot0, slot1)
+	slot1()
+end
+
+slot0.init = function(slot0)
+end
+
+slot0.quickExitFunc = function(slot0)
+	slot0:emit(uv0.ON_HOME)
+end
+
+slot0.quickExit = function(slot0)
+	for slot4, slot5 in ipairs(slot0.optionBtns) do
+		onButton(slot0, slot5, function ()
+			uv0:quickExitFunc()
+		end, SFX_PANEL)
+	end
+end
+
+slot0.enter = function(slot0)
+	slot0:quickExit()
+	slot0:PlayBGM()
+	slot0:emit(uv0.DID_ENTER)
+
+	if slot0:forceRatio() then
+		pg.CameraFixMgr.GetInstance():SetForceRatio(slot0:forceRatio())
+	end
+
+	if not slot0._isCachedView then
+		slot0:didEnter()
+		slot0:ShowOrHideResUI(true)
+	end
+
+	if tobool(slot0:loadingQueue()) and slot0.contextData.resumeCallback then
+		slot0.contextData.resumeCallback = nil
+
+		slot0.contextData.resumeCallback()
+	end
+
+	slot0:emit(uv0.AVALIBLE)
+	slot0:onUIAnimEnd(function ()
+		pg.SeriesGuideMgr.GetInstance():start({
+			view = uv0.__cname,
+			code = {
+				pg.SeriesGuideMgr.CODES.MAINUI
+			}
+		})
+		pg.NewGuideMgr.GetInstance():OnSceneEnter({
+			view = uv0.__cname
+		})
+	end)
+end
+
+slot0.closeView = function(slot0)
+	if slot0.contextData.isLayer then
+		slot0:emit(uv0.ON_CLOSE)
+	else
+		slot0:emit(uv0.ON_BACK)
+	end
+end
+
+slot0.didEnter = function(slot0)
+end
+
+slot0.willExit = function(slot0)
+end
+
+slot0.exit = function(slot0)
+	slot0.exited = true
+
+	slot0:StopBgm()
+	pg.DelegateInfo.Dispose(slot0)
+	slot0:willExit()
+	bindComponent(slot0, slot0._go, true)
+	slot0:ShowOrHideResUI(false)
+	slot0:DelFromOverlay(slot0:getDefaultUI())
+	slot0:setLayerMgrRegister(false)
+	slot0:detach()
+
+	if slot0:forceRatio() then
+		pg.CameraFixMgr.GetInstance():SetForceRatio(nil)
+	end
+
+	pg.NewGuideMgr.GetInstance():OnSceneExit({
+		view = slot0.__cname
+	})
+	pg.NewStoryMgr.GetInstance():OnSceneExit({
+		view = slot0.__cname
+	})
+	slot0:emit(uv0.DID_EXIT)
+end
+
+slot0.PlayUIAnimation = function(slot0, slot1, slot2, slot3)
+	slot5 = slot1:GetComponent(typeof(UIEventTrigger))
+
+	slot5.didExit:RemoveAllListeners()
+	slot5.didExit:AddListener(function ()
+		uv0.didExit:RemoveAllListeners()
+		uv1()
+	end)
+	slot1:GetComponent(typeof(Animation)):Play(slot2)
+end
+
+slot0.attach = function(slot0, slot1)
+end
+
+slot0.ClearTweens = function(slot0, slot1)
+	slot0:cleanManagedTween(slot1)
+end
+
+slot0.detach = function(slot0, slot1)
+	slot0._isLoaded = false
+
+	pg.DynamicBgMgr.GetInstance():ClearBg(slot0:getUIName())
+	slot0:disposeEvent()
+	slot0:ClearTweens(false)
+
+	slot0._tf = nil
+	slot2 = PoolMgr.GetInstance()
+	slot3 = slot0:getUIName()
+
+	if slot0._go ~= nil and slot3 then
+		slot2:ReturnUI(slot3, slot0._go)
+
+		slot0._go = nil
+	end
+end
+
+slot0.getTpl = function(slot0, slot1, slot2)
+	slot3 = (slot2 or slot0._tf):Find(slot1)
+
+	slot3:SetParent(slot0._tf, false)
+	SetActive(slot3, false)
+
+	return slot3
+end
+
+slot0.setSpriteTo = function(slot0, slot1, slot2, slot3)
+	slot2:GetComponent(typeof(Image)).sprite = slot0._tf:Find(slot1):GetComponent(typeof(Image)).sprite
+
+	if slot3 then
+		slot4:SetNativeSize()
+	end
+end
+
+slot0.setImageAmount = function(slot0, slot1, slot2)
+	slot1:GetComponent(typeof(Image)).fillAmount = slot2
+end
+
+slot0.setVisible = function(slot0, slot1)
+	slot0:ShowOrHideResUI(slot1)
+
+	if slot1 then
+		slot0:OnVisible()
+	else
+		slot0:OnDisVisible()
+	end
+
+	setActiveViaLayer(slot0._tf, slot1)
+end
+
+slot0.OnVisible = function(slot0)
+end
+
+slot0.OnDisVisible = function(slot0)
+end
+
+slot0.onBackPressed = function(slot0)
+	slot0:emit(uv0.ON_BACK_PRESSED)
+end
+
+return slot0
