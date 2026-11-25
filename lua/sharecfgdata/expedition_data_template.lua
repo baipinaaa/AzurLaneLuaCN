@@ -1119402,7 +1119402,7 @@ _G.pg.base.expedition_data_template[2079101] = {
 	award_display = {
 		{
 			2,
-			200864,
+			200867,
 			1
 		},
 		{
@@ -1119475,7 +1119475,7 @@ _G.pg.base.expedition_data_template[2079201] = {
 	award_display = {
 		{
 			2,
-			200865,
+			200868,
 			1
 		},
 		{
@@ -1119548,7 +1119548,7 @@ _G.pg.base.expedition_data_template[2079202] = {
 	award_display = {
 		{
 			2,
-			200865,
+			200868,
 			1
 		},
 		{
@@ -1119621,7 +1119621,7 @@ _G.pg.base.expedition_data_template[2079301] = {
 	award_display = {
 		{
 			2,
-			200866,
+			200869,
 			1
 		},
 		{
@@ -1119694,7 +1119694,7 @@ _G.pg.base.expedition_data_template[2079302] = {
 	award_display = {
 		{
 			2,
-			200866,
+			200869,
 			1
 		},
 		{
@@ -1119767,7 +1119767,7 @@ _G.pg.base.expedition_data_template[2079303] = {
 	award_display = {
 		{
 			2,
-			200866,
+			200869,
 			1
 		},
 		{
@@ -1119840,7 +1119840,7 @@ _G.pg.base.expedition_data_template[2079401] = {
 	award_display = {
 		{
 			2,
-			200867,
+			200870,
 			1
 		},
 		{
@@ -1119913,7 +1119913,7 @@ _G.pg.base.expedition_data_template[2079402] = {
 	award_display = {
 		{
 			2,
-			200867,
+			200870,
 			1
 		},
 		{
@@ -1119986,7 +1119986,7 @@ _G.pg.base.expedition_data_template[2079403] = {
 	award_display = {
 		{
 			2,
-			200867,
+			200870,
 			1
 		},
 		{
@@ -1120059,7 +1120059,7 @@ _G.pg.base.expedition_data_template[2079404] = {
 	award_display = {
 		{
 			2,
-			200867,
+			200870,
 			1
 		},
 		{

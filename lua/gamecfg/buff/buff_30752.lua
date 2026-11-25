@@ -18,7 +18,7 @@ return {
 			},
 			arg_list = {
 				countTarget = 8,
-				countType = 29680,
+				countType = 30750,
 				index = {
 					1
 				}
@@ -32,7 +32,7 @@ return {
 			arg_list = {
 				target = "TargetSelf",
 				skill_id = 30752,
-				countType = 29680
+				countType = 30750
 			}
 		}
 	}
